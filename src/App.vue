@@ -2,7 +2,11 @@
   <div id="app">
     <img src="./assets/logo.png">
     <div class="wl-gantt-demo">
-      <wlGantt start-date="2018-09-02" end-date="2019-02-24"/>
+      <wlGantt
+        :data="data" 
+        start-date="2019-3-02" 
+        end-date="2019-11-24">
+      </wlGantt>  
     </div>
   </div>
 </template>
@@ -12,6 +16,24 @@ import wlGantt from './components/gantt.vue'
 
 export default {
   name: 'app',
+  data(){
+    return {
+      data: [
+        {
+          id: 1,
+          name: "旅行",
+          startDate: "2019-09-07",
+          endDate: '2019-09-09'
+        },
+        {
+          id: 2,
+          name: "租房子",
+          startDate: "2019-09-20",
+          endDate: '2019-12-31'
+        }
+      ]
+    }
+  },
   components: {
     wlGantt
   }
