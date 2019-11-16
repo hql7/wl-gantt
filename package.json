@@ -1,18 +1,29 @@
 {
   "name": "wl-gantt",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "author": "weilan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hql7/wl-gantt/issues"
+  },
+  "homepage": "https://github.com/hql7/wl-gantt#readme",
+  "keyword": "vue gantt Gantt wl-gantt element-ui 甘特图 饿了么ui甘特图",
+  "main": "lib/wl-gantt.umd.min.js",
+  "description": "一个基于vue和element-ui的甘特图组件，gantt",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
+    "lib": "vue-cli-service build --target lib --name wl-gantt --dest lib src/components/index.js",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
     "core-js": "^2.6.5",
     "dayjs": "^1.8.16",
-    "element-ui": "^2.4.5",
+    "element-ui": "^2.12.0",
     "uuid": "^3.3.3",
-    "vue": "^2.6.10"
+    "vue": "^2.6.10",
+    "vue-virtual-scroller": "^1.0.0-rc.2"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.11.0",
@@ -22,7 +33,7 @@
     "babel-plugin-component": "^1.1.1",
     "eslint": "^5.16.0",
     "eslint-plugin-vue": "^5.0.0",
-    "node-sass": "^4.12.0",
+    "node-sass": "^4.13.0",
     "sass-loader": "^8.0.0",
     "vue-cli-plugin-element": "^1.0.1",
     "vue-template-compiler": "^2.6.10"
