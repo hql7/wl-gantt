@@ -42,12 +42,12 @@
     <slot></slot>
     <el-table-column :resizable="false" v-for="year in titleDate" :key="year.id" :label="year.name">
       <el-table-column
-        class-name='wl-gantt-item'
+        class-name="wl-gantt-item"
         v-for="month in year.children"
         :resizable="false"
         :key="month.id"
         :label="month.name"
-        >
+      >
         <template slot-scope="scope" v-if="dateType === 'yearAndMonth'">
           <div :class="dayGanttType(scope.row, month.full_date,'month')"></div>
         </template>
@@ -77,8 +77,8 @@ export default {
   name: "wleGantt",
   data() {
     return {
-      self_start_date: '',
-      self_end_date: '',
+      self_start_date: "",
+      self_end_date: ""
     };
   },
   props: {
@@ -213,7 +213,7 @@ export default {
     // 数据
     selfData() {
       let _data = this.data || [];
-      this.handleData(_data) 
+      this.handleData(_data);
       return _data;
     },
     // 树表配置项
@@ -221,12 +221,14 @@ export default {
       return {
         hasChildren: "hasChildren",
         children: "children",
-        name: 'name',
-        startDate: 'startDate',
-        endDate: 'endDate',
+        name: "name",
+        id: "id",
+        pid: "pid",
+        startDate: "startDate",
+        endDate: "endDate",
         ...this.props
       };
-    },
+    }
   },
   methods: {
     /**
@@ -234,27 +236,41 @@ export default {
      * row: object 当前行数据
      */
     startDateChange(row) {
+      console.log(row);
+      // 当有父级时，判断需处理父级逻辑
+      if(row._parent){
+
+      }
       // 如果开始晚于结束，提示
-      if(this.isBefore(row[this.selfProps.endDate],row[this.selfProps.startDate])){
+      if (
+        this.timeIsBefore(
+          row[this.selfProps.endDate],
+          row[this.selfProps.startDate]
+        )
+      ) {
         row[this.selfProps.startDate] = row._oldStartDate;
         this.$message({
           showClose: true,
-          message: '开始时间不可以晚于结束时间',
+          message: "开始时间不可以晚于结束时间",
           type: "error"
-        })
+        });
         return;
-      };
+      }
       // 如果开始早于项目开始，则把项目开始提前
-      if(this.isBefore(row[this.selfProps.startDate],this.self_start_date)){
+      if (this.timeIsBefore(row[this.selfProps.startDate], this.self_start_date)) {
         this.self_start_date = row[this.selfProps.startDate];
-      };
+      }
     },
     /**
      * 结束时间改变
      * row: object 当前行数据
      */
     endDateChange(row) {
-      console.log(row)
+      console.log(row);
+    },
+    // 递归处理父级数据-开始时间更改
+    deepHandleParnet(){
+      let aa = ""
     },
     /**
      * 生成月份函数
@@ -328,14 +344,15 @@ export default {
         return "wl-item-on wl-item-end";
       }
     },
+    // 以下是时间计算类函数 ------------------------------------------------------时间计算---------------------------------------
     /**
      * 计算时差
      * startDate：开始时间
      * endDate：结束时间
      * unit：单位 days、months、yesrs
      */
-    diffTime(startDate, endDate, unit = 'days'){
-      return dayjs(endDate).diff(startDate, unit)
+    timeDiffTime(startDate, endDate, unit = "days") {
+      return dayjs(endDate).diff(startDate, unit);
     },
     /**
      * 比较时间，是否之前
@@ -343,34 +360,69 @@ export default {
      * endDate：结束时间
      * unit：单位 days、months、yesrs
      */
-    isBefore(startDate, endDate, unit = 'days'){
+    timeIsBefore(startDate, endDate, unit = "days") {
       return dayjs(startDate).isBefore(endDate, unit);
     },
-    // 处理外部数据
-    handleData(data){
+    /**
+     * 时间加计算函数
+     * date：原时间
+     * num：需要增加的时间数量
+     * nuit：增加时间的单位 day year
+     */
+    timeAdd(date, num = 1, nuit = 'day', format = 'YYYY-MM-DD'){
+      return dayjs(date).add(num, nuit).format(format); 
+    },
+    // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
+    emitTimeChange(item){
+      this.$emit('timeChange', item);
+    },
+    // 处理外部数据 ---------------------------------------------------------------原始数据处理-------------------------------------
+    handleData(data, parent = null, level = 0) {
+      level++;
       data.forEach(i => {
-        i._cycle = this.diffTime(i[this.selfProps.startDate],i[this.selfProps.endDate]);
-        if(!i._oldStartDate){
-          this.$set(i,'_oldStartDate',i[this.selfProps.startDate])
+        i._parent = parent; // 添加父级字段
+        i._level = level; // 添加层级字段
+        // 如果当前节点的开始时间早于父节点的开始时间，则将开始时间与父节点相同
+        if(i._parent){
+          if(this.timeIsBefore(i[this.selfProps.startDate], i._parent[this.selfProps.startDate])){
+            i[this.selfProps.startDate] = i._parent[this.selfProps.startDate];
+          }
         }
-        if(!i._oldEndDate){
-          this.$set(i,'_oldEndDate',i[this.selfProps.endDate])
+        // 当结束时间早于开始时间时，自动处理结束时间为开始时间延后一天
+        if(this.timeIsBefore(i[this.selfProps.endDate], i[this.selfProps.startDate])){
+          i[this.selfProps.endDate] = this.timeAdd(i[this.selfProps.startDate]);
+          i._cycle = 1; // 添加工期字段
+          this.emitTimeChange(i); // 将发生时间更新的数据输出
+        }else{
+            i._cycle = this.timeDiffTime(
+            i[this.selfProps.startDate],
+            i[this.selfProps.endDate]
+          );
         }
-        if(Array.isArray(i[this.selfProps.children])){
-          this.handleData(i[this.selfProps.children])
+        if (!i._oldStartDate) {
+          this.$set(i, "_oldStartDate", i[this.selfProps.startDate]);
         }
-      })
-    }
+        if (!i._oldEndDate) {
+          this.$set(i, "_oldEndDate", i[this.selfProps.endDate]);
+        }
+        if (Array.isArray(i[this.selfProps.children])) {
+          i._isLeaf = false;
+          this.handleData(i[this.selfProps.children], i, level);
+        } else {
+          i._isLeaf = true;
+        }
+      });
+    },
   },
-  watch:{
-    startDate(val){
+  watch: {
+    startDate(val) {
       this.self_start_date = val;
     },
-    endDate(val){
+    endDate(val) {
       this.self_end_date = val;
     }
   },
-  created(){
+  created() {
     this.self_start_date = this.startDate;
     this.self_end_date = this.endDate;
   }
