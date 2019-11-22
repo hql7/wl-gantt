@@ -20,7 +20,7 @@ function treeToArray(
   level = null
 ) {
   let tmp = [];
-  Array.from(data).forEach(function(record) {
+  Array.from(data).forEach(function (record) {
     let _level = 1;
     if (level !== undefined && level !== null) {
       _level = level + 1;
@@ -87,67 +87,33 @@ function deepClone(source) {
   return targetObj;
 }
 
-let data = [{
-    path: '/timeline',
-    name: 'dashboard',
-    component: 'Main',
-    children: [{
-      path: 'timeline',
-      name: 'timeline',
-      meta: {
-        icon: 'ios-clock-outline',
-        title: '时间轴'
-      },
-      component: ''
-    }]
-  },
-  {
-    path: '/permission',
-    name: 'roles',
-    component: 'Main',
-    children: [{
-      path: 'permission',
-      name: 'permission',
-      meta: {
-        icon: 'ios-lock',
-        title: '权限'
-      },
-      component: ''
-    }]
-  },
-  {
-    path: '/doc',
-    name: 'doc',
-    meta: {
-      icon: 'md-menu',
-      title: '文档'
-    },
-    children: [{
-        path: 'doc',
-        name: 'doc',
-        meta: {
-          icon: 'md-funnel',
-          title: '官方文档',
-          href: 'https://lison16.github.io/iview-admin-doc/#/'
-        }
-      },
-      {
-        path: 'role-doc',
-        name: 'role-doc',
-        meta: {
-          icon: 'md-funnel',
-          title: '权限文档',
-          href: 'https://www.jianshu.com/p/ece6fa64e8ad'
-        }
-      }
-    ]
-  }
-]
+/**
+ * 筛选出数组中最大值
+ * @param {*} arr 数据
+ * @param {*} key 如果是复杂型数组，请指定字段key
+ * @param {*} stamp 如果是时间格式，请设置以转化时间戳
+ */
+function getMax(arr = [], key = null, stamp = false) {
+  let _o = !key ? arr : arr.map(i => i[key]);
+  let _t = !stamp ? _o : _o.map(i => dayjs(i).unix());
+  return Math.max(..._t)
+}
 
+/**
+ * 筛选出数组中最小值
+ * @param {*} arr 数据
+ * @param {*} key 如果是复杂型数组，请指定字段key
+ * @param {*} stamp 如果是时间格式，请设置以转化时间戳
+ */
+function getMin(arr = [], key = null, stamp = false) {
+  let _o = !key ? arr : arr.map(i => i[key]);
+  let _t = !stamp ? _o : _o.map(i => dayjs(i).unix());
+  return Math.min(..._t)
+}
 
 function deepChangeObject(data) {
   let tmp = [];
-  Array.from(data).forEach(function(record) {
+  Array.from(data).forEach(function (record) {
     Vue.set(record, "_level", _level);
     Vue.set(record, "_parents", _parents);
 
@@ -174,37 +140,9 @@ function deepChangeObject(data) {
   return tmp;
 }
 
-/* class DeepChangeObject {
-  constructor(val) {
-    this.data = val;
-    this.new_data = [];
-    this.id = 0;
-  }
-
-  changeData(arr = this.data) {
-    this.id + 1;
-    arr.forEach(item => {
-      if (item.meta) {
-        let _item = {
-          id: this.id,
-          pid: 
-          title: item.meta.title,
-          children: item.children || []
-        }
-        if (children > 0) {
-          this.changeData(children)
-        }
-      } else {
-        let [_first_child] = item.children;
-        let _item = { title: _first_child.meta.title }
-      }
-      this.new_data.push(_item);
-    })
-  }
-} */
-
 export {
   treeToArray,
   flattenDeep,
-  deepClone
+  deepClone,
+  getMax
 }

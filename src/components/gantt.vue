@@ -72,13 +72,14 @@ import dayjs from "dayjs"; // 导入日期js
 const uuidv4 = require("uuid/v4"); // 导入uuid生成插件
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
-import { deepClone, treeToArray } from "@/assets/array.js";
+import { deepClone, treeToArray, flattenDeep } from "@/assets/array.js";
 export default {
   name: "wleGantt",
   data() {
     return {
-      self_start_date: "",
-      self_end_date: ""
+      self_start_date: "", // 项目开始时间
+      self_end_date: "", // 项目结束时间
+      self_data_list:[], // 一维化后的gantt数据
     };
   },
   props: {
@@ -105,7 +106,17 @@ export default {
     endDate: {
       type: [String, Object],
       required: true
-    }
+    },
+    // 是否检查源数据符合规则，默认开启，如果源数据已遵循project规则，可设置为false以提高性能
+    checkSource: {
+      type: Boolean,
+      default: true
+    },
+    // 是否使用一维数据组成树
+    /* arrayToTree: {
+      type: Boolean,
+      default: false
+    } */
   },
   computed: {
     // 第一级日期
@@ -214,6 +225,7 @@ export default {
     selfData() {
       let _data = this.data || [];
       this.handleData(_data);
+      this.self_data_list = flattenDeep(_data, this.selfProps.children);
       return _data;
     },
     // 树表配置项
@@ -238,8 +250,7 @@ export default {
     startDateChange(row) {
       console.log(row);
       // 当有父级时，判断需处理父级逻辑
-      if(row._parent){
-
+      if (row._parent) {
       }
       // 如果开始晚于结束，提示
       if (
@@ -257,7 +268,9 @@ export default {
         return;
       }
       // 如果开始早于项目开始，则把项目开始提前
-      if (this.timeIsBefore(row[this.selfProps.startDate], this.self_start_date)) {
+      if (
+        this.timeIsBefore(row[this.selfProps.startDate], this.self_start_date)
+      ) {
         this.self_start_date = row[this.selfProps.startDate];
       }
     },
@@ -269,8 +282,8 @@ export default {
       console.log(row);
     },
     // 递归处理父级数据-开始时间更改
-    deepHandleParnet(){
-      let aa = ""
+    deepHandleParnet() {
+      let aa = "";
     },
     /**
      * 生成月份函数
@@ -369,12 +382,14 @@ export default {
      * num：需要增加的时间数量
      * nuit：增加时间的单位 day year
      */
-    timeAdd(date, num = 1, nuit = 'day', format = 'YYYY-MM-DD'){
-      return dayjs(date).add(num, nuit).format(format); 
+    timeAdd(date, num = 1, nuit = "day", format = "YYYY-MM-DD") {
+      return dayjs(date)
+        .add(num, nuit)
+        .format(format);
     },
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
-    emitTimeChange(item){
-      this.$emit('timeChange', item);
+    emitTimeChange(item) {
+      this.$emit("timeChange", item);
     },
     // 处理外部数据 ---------------------------------------------------------------原始数据处理-------------------------------------
     handleData(data, parent = null, level = 0) {
@@ -383,18 +398,29 @@ export default {
         i._parent = parent; // 添加父级字段
         i._level = level; // 添加层级字段
         // 如果当前节点的开始时间早于父节点的开始时间，则将开始时间与父节点相同
-        if(i._parent){
-          if(this.timeIsBefore(i[this.selfProps.startDate], i._parent[this.selfProps.startDate])){
+        if (i._parent) {
+          // 如果子节点时间早于父节点，则将子节点开始时间后移至父节点开始时间
+          if (
+            this.timeIsBefore(
+              i[this.selfProps.startDate],
+              i._parent[this.selfProps.startDate]
+            )
+          ) {
             i[this.selfProps.startDate] = i._parent[this.selfProps.startDate];
           }
         }
         // 当结束时间早于开始时间时，自动处理结束时间为开始时间延后一天
-        if(this.timeIsBefore(i[this.selfProps.endDate], i[this.selfProps.startDate])){
+        if (
+          this.timeIsBefore(
+            i[this.selfProps.endDate],
+            i[this.selfProps.startDate]
+          )
+        ) {
           i[this.selfProps.endDate] = this.timeAdd(i[this.selfProps.startDate]);
           i._cycle = 1; // 添加工期字段
           this.emitTimeChange(i); // 将发生时间更新的数据输出
-        }else{
-            i._cycle = this.timeDiffTime(
+        } else {
+          i._cycle = this.timeDiffTime(
             i[this.selfProps.startDate],
             i[this.selfProps.endDate]
           );
@@ -413,6 +439,33 @@ export default {
         }
       });
     },
+    // 简洁处理数据
+    terseHandleData(data, parent = null, level = 0) {
+      level++;
+      data.forEach(i => {
+        i._parent = parent; // 添加父级字段
+        i._level = level; // 添加层级字段
+        i._cycle = this.timeDiffTime( // 添加工期字段
+          i[this.selfProps.startDate],
+          i[this.selfProps.endDate]
+        );
+        if (!i._oldStartDate) { // 添加开始时间字段
+          this.$set(i, "_oldStartDate", i[this.selfProps.startDate]);
+        }
+        if (!i._oldEndDate) { // 添加结束字段时间
+          this.$set(i, "_oldEndDate", i[this.selfProps.endDate]);
+        }
+        if (Array.isArray(i[this.selfProps.children])) { // 添加是否叶子节点字段
+          i._isLeaf = false;
+          this.terseHandleData(i[this.selfProps.children], i, level);
+        } else {
+          i._isLeaf = true;
+        }
+      });
+    },
+    // 筛选数组中最晚时间
+
+
   },
   watch: {
     startDate(val) {
