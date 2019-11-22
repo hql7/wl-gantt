@@ -96,7 +96,7 @@ function deepClone(source) {
 function getMax(arr = [], key = null, stamp = false) {
   let _o = !key ? arr : arr.map(i => i[key]);
   let _t = !stamp ? _o : _o.map(i => dayjs(i).unix());
-  return Math.max(..._t)
+  return Math.max(..._t)*1000;
 }
 
 /**
@@ -108,7 +108,7 @@ function getMax(arr = [], key = null, stamp = false) {
 function getMin(arr = [], key = null, stamp = false) {
   let _o = !key ? arr : arr.map(i => i[key]);
   let _t = !stamp ? _o : _o.map(i => dayjs(i).unix());
-  return Math.min(..._t)
+  return Math.min(..._t)*1000;
 }
 
 function deepChangeObject(data) {
@@ -141,8 +141,9 @@ function deepChangeObject(data) {
 }
 
 export {
-  treeToArray,
-  flattenDeep,
-  deepClone,
-  getMax
+  treeToArray, // 
+  flattenDeep, // 将树转化为一维数组
+  deepClone, // 深拷贝
+  getMax, // 获取最大值
+  getMin, // 获取最小值
 }

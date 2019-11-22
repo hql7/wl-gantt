@@ -27,13 +27,13 @@ export default {
           pid: 0,
           name: "旅行",
           startDate: "2019-09-07",
-          endDate: '2020-09-09',
+          endDate: '2019-09-09',
           children: [
             {
               id: '1-1',
               pid: 1,
               name: '云台之间',
-              startDate: "2019-09-07",
+              startDate: "2019-09-01",
               endDate: '2019-09-09',
             },
             {
