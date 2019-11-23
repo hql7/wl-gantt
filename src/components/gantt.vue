@@ -86,7 +86,8 @@ export default {
     return {
       self_start_date: "", // 项目开始时间
       self_end_date: "", // 项目结束时间
-      self_data_list: [] // 一维化后的gantt数据
+      self_data_list: [], // 一维化后的gantt数据
+      self_id: 1 // 自增id
     };
   },
   props: {
@@ -116,6 +117,18 @@ export default {
     },
     // 是否检查源数据符合规则，默认开启，如果源数据已遵循project规则，可设置为false以提高性能
     checkSource: {
+      type: Boolean,
+      default: true
+    },
+    // 是否生成自增id并组成parents来满足树链的查询条件，如果数据本身已有自增id，可设置为false以提高性能
+    // 如果设置为false，则数据内必须包含自增id字段：identityId，parents字段必须以`,`分割。
+    // 字段名可通过props配置，自增id必须唯一并尽可能的短，如1，2，3...，parents应为祖先自增id通过`,`拼接直至父级
+    recordParents: {
+      type: Boolean,
+      default: true
+    },
+    // 是否使用id来作为自增id，如果是请保证id本来就简短的数字型而不是较长的字符串或guid
+    treatIdAsIdentityId: {
       type: Boolean,
       default: true
     }
@@ -245,6 +258,7 @@ export default {
         pid: "pid",
         startDate: "startDate",
         endDate: "endDate",
+        pre: "pre",
         ...this.props
       };
     },
@@ -265,12 +279,33 @@ export default {
      * row: object 当前行数据
      */
     startDateChange(row) {
-      console.log(row);
-      // 当有父级时，判断需处理父级逻辑
-      if (row._parent) {
+      // 如果将开始时间后移，结束时间也应后移
+      let _delay = this.timeIsBefore(
+        row._oldStartDate,
+        row[this.selfProps.startDate]
+      );
+      if (_delay) {
+        row[this.selfProps.endDate] = this.timeAdd(
+          row[this.selfProps.endDate],
+          row._cycle
+        );
       }
+      // 如果开始早于项目开始，则把项目开始提前
+      let _early_project_start = this.timeIsBefore(
+        row[this.selfProps.startDate],
+        this.self_start_date
+      );
+      if (_early_project_start) {
+        this.self_start_date = row[this.selfProps.startDate];
+      }
+    },
+    /**
+     * 结束时间改变
+     * row: object 当前行数据
+     */
+    endDateChange(row) {
       // 如果开始晚于结束，提示
-      if (
+      /* if (
         this.timeIsBefore(
           row[this.selfProps.endDate],
           row[this.selfProps.startDate]
@@ -283,25 +318,12 @@ export default {
           type: "error"
         });
         return;
-      }
-      // 如果开始早于项目开始，则把项目开始提前
-      if (
-        this.timeIsBefore(row[this.selfProps.startDate], this.self_start_date)
-      ) {
-        this.self_start_date = row[this.selfProps.startDate];
-      }
+      } */
     },
     /**
-     * 结束时间改变
-     * row: object 当前行数据
+     * 查询目标是否在父级链或者全部子集中
      */
-    endDateChange(row) {
-      console.log(row);
-    },
-    // 递归处理父级数据-开始时间更改
-    deepHandleParnet() {
-      let aa = "";
-    },
+    targetInParentsOrChildren(item, target) {},
     // 以下是表格-日期-gantt生成函数----------------------------------------生成gantt表格-------------------------------------
     /**
      * 生成月份函数
@@ -420,7 +442,7 @@ export default {
     // 处理外部数据 ---------------------------------------------------------------原始数据处理-------------------------------------
     handleData(data, parent = null, level = 0) {
       level++;
-      data.forEach((i, idx) => {
+      data.forEach(i => {
         i._parent = parent; // 添加父级字段
         i._level = level; // 添加层级字段
         if (!i._oldStartDate) {
@@ -435,21 +457,28 @@ export default {
           i[this.selfProps.startDate]
         );
         if (_end_early_start) {
-          i[this.selfProps.endDate] = this.timeAdd(i[this.selfProps.startDate]);
-          i._cycle = 1; // 添加工期字段
+          i[this.selfProps.endDate] = i[this.selfProps.startDate];
+          i._cycle = 1;
           this.emitTimeChange(i); // 将发生时间更新的数据输出
         } else {
-          i._cycle = this.timeDiffTime(
+          let _time_diff = this.timeDiffTime(
             i[this.selfProps.startDate],
             i[this.selfProps.endDate]
           );
-        }
+          i._cycle = _time_diff + 1;
+        } // 添加工期字段
+        // 添加自增id字段及树链组成的parents字段
+        this.recordIdentityIdAndParents(i);
         // 如果当前节点的开始时间早于父节点的开始时间，则将开始时间与父节点相同
         this.parentStartDateToChild(i);
         // 校验结束时间是否晚于子节点，如不则将节点结束时间改为最晚子节点
         this.childEndDateToParent(i);
         if (Array.isArray(i[this.selfProps.children])) {
           i._isLeaf = false;
+          i._all_children = flattenDeep(
+            i[this.selfProps.children],
+            this.selfProps.children
+          );
           this.handleData(i[this.selfProps.children], i, level);
         } else {
           i._isLeaf = true;
@@ -476,7 +505,7 @@ export default {
     // 取数组结束时间最大值，如果最大值比父级结束时间大，更新父级结束时间
     childEndDateToParent(item) {
       if (!Array.isArray(item[this.selfProps.children])) return;
-      let _child_max = getMax(  
+      let _child_max = getMax(
         item[this.selfProps.children],
         this.selfProps.endDate,
         true
@@ -485,7 +514,22 @@ export default {
       if (_child_max > _parent_end) {
         item[this.selfProps.endDate] = this.timeFormat(_child_max);
         this.emitTimeChange(item); // 将发生时间更新的数据输出
-      }; // 如果子节点结束时间比父节点晚，则将父节点结束时间退后
+      } // 如果子节点结束时间比父节点晚，则将父节点结束时间退后
+    },
+    // 处理数据生成自增id和树链parents
+    recordIdentityIdAndParents(item) {
+      if (!this.recordParents) return;
+      if (this.treatIdAsIdentityId) {
+        item._parents = item._parent
+          ? item._parent._parents + "," + item._parent[this.selfProps.id]
+          : "";
+        return;
+      }
+      item._identityId = this.self_id;
+      this.self_id++;
+      item._parents = item._parent
+        ? item._parent._parents + "," + item._parent._identityId
+        : "";
     },
     // 简洁处理数据
     terseHandleData(data, parent = null, level = 0) {
@@ -493,11 +537,11 @@ export default {
       data.forEach(i => {
         i._parent = parent; // 添加父级字段
         i._level = level; // 添加层级字段
-        i._cycle = this.timeDiffTime(
-          // 添加工期字段
+        let _time_diff = this.timeDiffTime(
           i[this.selfProps.startDate],
           i[this.selfProps.endDate]
         );
+        i._cycle = _time_diff + 1;
         if (!i._oldStartDate) {
           // 添加开始时间字段
           this.$set(i, "_oldStartDate", i[this.selfProps.startDate]);
@@ -506,9 +550,15 @@ export default {
           // 添加结束字段时间
           this.$set(i, "_oldEndDate", i[this.selfProps.endDate]);
         }
+        // 添加自增id字段及树链组成的parents字段
+        this.recordIdentityIdAndParents(i);
         if (Array.isArray(i[this.selfProps.children])) {
           // 添加是否叶子节点字段
           i._isLeaf = false;
+          i._all_children = flattenDeep(
+            i[this.selfProps.children],
+            this.selfProps.children
+          );
           this.terseHandleData(i[this.selfProps.children], i, level);
         } else {
           i._isLeaf = true;
