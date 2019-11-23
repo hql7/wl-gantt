@@ -95,8 +95,8 @@ function deepClone(source) {
  */
 function getMax(arr = [], key = null, stamp = false) {
   let _o = !key ? arr : arr.map(i => i[key]);
-  let _t = !stamp ? _o : _o.map(i => dayjs(i).unix());
-  return Math.max(..._t)*1000;
+  let _t = !stamp ? _o : _o.map(i => dayjs(i).valueOf());
+  return Math.max(..._t);
 }
 
 /**
@@ -107,8 +107,8 @@ function getMax(arr = [], key = null, stamp = false) {
  */
 function getMin(arr = [], key = null, stamp = false) {
   let _o = !key ? arr : arr.map(i => i[key]);
-  let _t = !stamp ? _o : _o.map(i => dayjs(i).unix());
-  return Math.min(..._t)*1000;
+  let _t = !stamp ? _o : _o.map(i => dayjs(i).valueOf());
+  return Math.min(..._t);
 }
 
 function deepChangeObject(data) {

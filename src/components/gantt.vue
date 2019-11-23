@@ -120,6 +120,7 @@ export default {
       type: Boolean,
       default: true
     },
+    // 废弃：反而会因为频繁的判断而影响性能
     // 是否生成自增id并组成parents来满足树链的查询条件，如果数据本身已有自增id，可设置为false以提高性能
     // 如果设置为false，则数据内必须包含自增id字段：identityId，parents字段必须以`,`分割。
     // 字段名可通过props配置，自增id必须唯一并尽可能的短，如1，2，3...，parents应为祖先自增id通过`,`拼接直至父级
@@ -252,13 +253,15 @@ export default {
     selfProps() {
       return {
         hasChildren: "hasChildren",
-        children: "children",
-        name: "name",
-        id: "id",
-        pid: "pid",
-        startDate: "startDate",
-        endDate: "endDate",
-        pre: "pre",
+        children: "children", // children字段
+        name: "name", // 任务名称字段
+        id: "id", // id字段
+        pid: "pid", // pid字段
+        startDate: "startDate", // 开始时间字段
+        endDate: "endDate", // 结束时间字段
+        identityId: "identityId",
+        parents: "parents",
+        pre: "pre", // 前置任务字段【注意：如果使用recordParents，则pre值应是目标对象的identityId字段(可配置)】
         ...this.props
       };
     },
@@ -323,7 +326,18 @@ export default {
     /**
      * 查询目标是否在父级链或者全部子集中
      */
-    targetInParentsOrChildren(item, target) {},
+    targetInParentsOrChildren(item) {
+      // if(this.recordParents){
+      let _parents = item._parents.split(",").filter(i => !!i);
+      let _children = item._all_children.map(i => i._identityId);
+      return _children
+        .push(..._parents)
+        .find(i => i == item[this.selfProps.pre]);
+      // }
+      /* let _parents = item[this.selfProps.parents].split(",").filter(i => !!i);
+      let _children = item._all_children.map(i => i[this.selfProps.identityId]);
+      return _children.push(..._parents).some(i => i == item[this.selfProps.pre]); */
+    },
     // 以下是表格-日期-gantt生成函数----------------------------------------生成gantt表格-------------------------------------
     /**
      * 生成月份函数
@@ -443,29 +457,31 @@ export default {
     handleData(data, parent = null, level = 0) {
       level++;
       data.forEach(i => {
-        i._parent = parent; // 添加父级字段
-        i._level = level; // 添加层级字段
+        this.$set(i, "_parent", parent); // 添加父级字段
+        this.$set(i, "_level", level); // 添加层级字段
         if (!i._oldStartDate) {
           this.$set(i, "_oldStartDate", i[this.selfProps.startDate]);
         }
         if (!i._oldEndDate) {
           this.$set(i, "_oldEndDate", i[this.selfProps.endDate]);
         }
+        // 处理前置任务
+        this.handlePreTask(i);
         // 当结束时间早于开始时间时，自动处理结束时间为开始时间延后一天
         let _end_early_start = this.timeIsBefore(
           i[this.selfProps.endDate],
           i[this.selfProps.startDate]
         );
         if (_end_early_start) {
-          i[this.selfProps.endDate] = i[this.selfProps.startDate];
-          i._cycle = 1;
+          this.$set(i, this.selfProps.endDate, i[this.selfProps.startDate]);
+          this.$set(i, "_cycle", 1); // 添加工期字段
           this.emitTimeChange(i); // 将发生时间更新的数据输出
         } else {
           let _time_diff = this.timeDiffTime(
             i[this.selfProps.startDate],
             i[this.selfProps.endDate]
           );
-          i._cycle = _time_diff + 1;
+          this.$set(i, "_cycle", _time_diff + 1); // 添加工期字段
         } // 添加工期字段
         // 添加自增id字段及树链组成的parents字段
         this.recordIdentityIdAndParents(i);
@@ -474,14 +490,16 @@ export default {
         // 校验结束时间是否晚于子节点，如不则将节点结束时间改为最晚子节点
         this.childEndDateToParent(i);
         if (Array.isArray(i[this.selfProps.children])) {
-          i._isLeaf = false;
-          i._all_children = flattenDeep(
+          this.$set(i, "_isLeaf", false); // 添加是否叶子节点字段
+          let _all_children = flattenDeep(
             i[this.selfProps.children],
             this.selfProps.children
           );
+          this.$set(i, "_all_children", _all_children); // 添加全部子节点字段
           this.handleData(i[this.selfProps.children], i, level);
         } else {
-          i._isLeaf = true;
+          this.$set(i, "_isLeaf", true); // 添加是否叶子节点字段
+          this.$set(i, "_all_children", []); // 添加全部子节点字段
         }
       });
     },
@@ -494,11 +512,18 @@ export default {
         item._parent[this.selfProps.startDate]
       );
       if (_child_early_parent) {
-        item[this.selfProps.startDate] = item._parent[this.selfProps.startDate]; // 修正子节点开始事件
-        item[this.selfProps.endDate] = this.timeAdd(
+        // 修正子节点开始时间
+        this.$set(
+          item,
+          this.selfProps.startDate,
+          item._parent[this.selfProps.startDate]
+        );
+        // 修正子节点结束时间
+        let _to_endDate = this.timeAdd(
           item[this.selfProps.startDate],
           item._cycle
-        ); // 修正子节点结束时间
+        );
+        this.$set(item, this.selfProps.endDate, _to_endDate);
         this.emitTimeChange(item); // 将发生时间更新的数据输出
       }
     },
@@ -510,33 +535,62 @@ export default {
         this.selfProps.endDate,
         true
       ); // 取子节点中最晚的结束时间
-      let _parent_end = dayjs(item[this.selfProps.endDate]).unix();
+      let _parent_end = dayjs(item[this.selfProps.endDate]).valueOf();
       if (_child_max > _parent_end) {
-        item[this.selfProps.endDate] = this.timeFormat(_child_max);
+        // 如果子节点结束时间比父节点晚，则将父节点结束时间退后
+        this.$set(item, this.selfProps.endDate, this.timeFormat(_child_max));
         this.emitTimeChange(item); // 将发生时间更新的数据输出
-      } // 如果子节点结束时间比父节点晚，则将父节点结束时间退后
+      }
+    },
+    // 处理前置任务节点
+    handlePreTask(item) {
+      if (!item[this.selfProps.pre]) return;
+      let is_pre_standard = this.targetInParentsOrChildren(item);
+      if (is_pre_standard) return;
+      // 找到前置目标节点
+      let _pre_target = this.self_data_list.find(
+        i => i._identityId == item[this.selfProps.pre]
+      );
+      if (!_pre_target) return;
+      // 查看是否需要根据前置时间，如果不符合规则，更新后置时间
+      let _start_early_prvend = this.timeIsBefore(
+        item[this.selfProps.startDate],
+        _pre_target[this.selfProps.endDate]
+      );
+      if (_start_early_prvend) {
+        let _cycle = item._cycle;
+        let _to_startDate = this.timeAdd(_pre_target[this.selfProps.endDate], 1);
+        let _to_endDate = this.timeAdd(_to_startDate, _cycle);
+        this.$set(item, this.selfProps.startDate, _to_startDate);
+        this.$set(item, this.selfProps.endDate, _to_endDate);
+      }
     },
     // 处理数据生成自增id和树链parents
     recordIdentityIdAndParents(item) {
-      if (!this.recordParents) return;
+      // if (!this.recordParents) return;
       if (this.treatIdAsIdentityId) {
-        item._parents = item._parent
+        let _parents = item._parent
           ? item._parent._parents + "," + item._parent[this.selfProps.id]
           : "";
+        this.$set(item, "_parents", _parents);
+        this.$set(item, "_identityId", item[this.selfProps.id]);
         return;
       }
-      item._identityId = this.self_id;
+      // 添加自增id
+      this.$set(item, "_identityId", this.self_id);
       this.self_id++;
-      item._parents = item._parent
+      // 添加parents字段
+      let _parents = item._parent
         ? item._parent._parents + "," + item._parent._identityId
         : "";
+      this.$set(item, "_parents", _parents);
     },
     // 简洁处理数据
     terseHandleData(data, parent = null, level = 0) {
       level++;
       data.forEach(i => {
-        i._parent = parent; // 添加父级字段
-        i._level = level; // 添加层级字段
+        this.$set(i, "_parent", parent); // 添加父级字段
+        this.$set(i, "_level", level); // 添加层级字段
         let _time_diff = this.timeDiffTime(
           i[this.selfProps.startDate],
           i[this.selfProps.endDate]
@@ -553,15 +607,15 @@ export default {
         // 添加自增id字段及树链组成的parents字段
         this.recordIdentityIdAndParents(i);
         if (Array.isArray(i[this.selfProps.children])) {
-          // 添加是否叶子节点字段
-          i._isLeaf = false;
-          i._all_children = flattenDeep(
+          this.$set(i, "_isLeaf", false); // 添加是否叶子节点字段
+          let _all_children = flattenDeep(
             i[this.selfProps.children],
             this.selfProps.children
           );
+          this.$set(i, "_all_children", _all_children); // 添加全部子节点字段
           this.terseHandleData(i[this.selfProps.children], i, level);
         } else {
-          i._isLeaf = true;
+          this.$set(i, "_isLeaf", true); // 添加是否叶子节点字段
         }
       });
     }
