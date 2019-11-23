@@ -10,7 +10,7 @@
     :class="dateTypeClass"
     :tree-props="selfProps"
     header-row-class-name="wl-gantt-header"
-    >
+  >
     <el-table-column :resizable="false" fixed :prop="selfProps.name" width="160" label="名称"></el-table-column>
     <el-table-column :resizable="false" fixed width="160" :prop="selfProps.startDate" label="开始日期">
       <template slot-scope="scope">
@@ -249,13 +249,13 @@ export default {
       };
     },
     // 根据日期类型改样式
-    dateTypeClass(){
-      if(this.dateType === "yearAndMonth"){
-        return 'year-and-month'
-      }else if(this.dateType === "monthAndDay"){
-        return 'month-and-day'
-      }else if(this.dateType === "yearAndWeek"){
-        return 'year-and-week'
+    dateTypeClass() {
+      if (this.dateType === "yearAndMonth") {
+        return "year-and-month";
+      } else if (this.dateType === "monthAndDay") {
+        return "month-and-day";
+      } else if (this.dateType === "yearAndWeek") {
+        return "year-and-week";
       }
     }
   },
@@ -423,6 +423,12 @@ export default {
       data.forEach((i, idx) => {
         i._parent = parent; // 添加父级字段
         i._level = level; // 添加层级字段
+        if (!i._oldStartDate) {
+          this.$set(i, "_oldStartDate", i[this.selfProps.startDate]);
+        }
+        if (!i._oldEndDate) {
+          this.$set(i, "_oldEndDate", i[this.selfProps.endDate]);
+        }
         // 当结束时间早于开始时间时，自动处理结束时间为开始时间延后一天
         let _end_early_start = this.timeIsBefore(
           i[this.selfProps.endDate],
@@ -439,27 +445,9 @@ export default {
           );
         }
         // 如果当前节点的开始时间早于父节点的开始时间，则将开始时间与父节点相同
-        if (i._parent) {
-          // 如果子节点时间早于父节点，则将子节点开始时间后移至父节点开始时间,并将结束时间平移【即工期不变】
-          let _child_early_parent = this.timeIsBefore(
-            i[this.selfProps.startDate],
-            i._parent[this.selfProps.startDate]
-          );
-          if (_child_early_parent) {
-            i[this.selfProps.startDate] = i._parent[this.selfProps.startDate]; // 修正子节点开始事件
-            i[this.selfProps.endDate] = this.timeAdd(
-              i[this.selfProps.startDate],
-              i._cycle
-            ); // 修正子节点结束时间
-          }
-        }
-        this.childEndDateToParent(i); // 校验结束时间是否晚于子节点，如不则将节点结束时间改为最晚子节点
-        if (!i._oldStartDate) {
-          this.$set(i, "_oldStartDate", i[this.selfProps.startDate]);
-        }
-        if (!i._oldEndDate) {
-          this.$set(i, "_oldEndDate", i[this.selfProps.endDate]);
-        }
+        this.parentStartDateToChild(i);
+        // 校验结束时间是否晚于子节点，如不则将节点结束时间改为最晚子节点
+        this.childEndDateToParent(i);
         if (Array.isArray(i[this.selfProps.children])) {
           i._isLeaf = false;
           this.handleData(i[this.selfProps.children], i, level);
@@ -468,18 +456,36 @@ export default {
         }
       });
     },
+    // 取父节点开始时间给早于父节点开始时间的子节点
+    parentStartDateToChild(item) {
+      if (!item._parent) return;
+      // 如果子节点时间早于父节点，则将子节点开始时间后移至父节点开始时间,并将结束时间平移【即工期不变】
+      let _child_early_parent = this.timeIsBefore(
+        item[this.selfProps.startDate],
+        item._parent[this.selfProps.startDate]
+      );
+      if (_child_early_parent) {
+        item[this.selfProps.startDate] = item._parent[this.selfProps.startDate]; // 修正子节点开始事件
+        item[this.selfProps.endDate] = this.timeAdd(
+          item[this.selfProps.startDate],
+          item._cycle
+        ); // 修正子节点结束时间
+        this.emitTimeChange(item); // 将发生时间更新的数据输出
+      }
+    },
     // 取数组结束时间最大值，如果最大值比父级结束时间大，更新父级结束时间
     childEndDateToParent(item) {
-      if (!item || !Array.isArray(item[this.selfProps.children])) return;
-      let _child_max = getMax(
+      if (!Array.isArray(item[this.selfProps.children])) return;
+      let _child_max = getMax(  
         item[this.selfProps.children],
         this.selfProps.endDate,
         true
-      );
+      ); // 取子节点中最晚的结束时间
       let _parent_end = dayjs(item[this.selfProps.endDate]).unix();
       if (_child_max > _parent_end) {
         item[this.selfProps.endDate] = this.timeFormat(_child_max);
-      }
+        this.emitTimeChange(item); // 将发生时间更新的数据输出
+      }; // 如果子节点结束时间比父节点晚，则将父节点结束时间退后
     },
     // 简洁处理数据
     terseHandleData(data, parent = null, level = 0) {
@@ -620,7 +626,7 @@ $gantt_item_half: 8px;
   }
 }
 
-.year-and-month{
+.year-and-month {
   .wl-item-start {
     left: 5%;
     &:after {
@@ -639,6 +645,35 @@ $gantt_item_half: 8px;
 
   .wl-item-end {
     right: 5%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-full {
+    left: 5%;
+    right: 5%;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
     &:after {
       position: absolute;
       top: $gantt_item;
