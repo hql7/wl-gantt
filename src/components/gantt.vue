@@ -1,15 +1,16 @@
 <template>
   <el-table
-    ref="wl-gantt"
     border
     row-key="id"
-    current-row-key="id"
+    ref="wl-gantt"
     class="wl-gantt"
+    current-row-key="id"
     default-expand-all
     :data="selfData"
-    header-row-class-name="wl-gantt-header"
+    :class="dateTypeClass"
     :tree-props="selfProps"
-  >
+    header-row-class-name="wl-gantt-header"
+    >
     <el-table-column :resizable="false" fixed :prop="selfProps.name" width="160" label="名称"></el-table-column>
     <el-table-column :resizable="false" fixed width="160" :prop="selfProps.startDate" label="开始日期">
       <template slot-scope="scope">
@@ -246,6 +247,16 @@ export default {
         endDate: "endDate",
         ...this.props
       };
+    },
+    // 根据日期类型改样式
+    dateTypeClass(){
+      if(this.dateType === "yearAndMonth"){
+        return 'year-and-month'
+      }else if(this.dateType === "monthAndDay"){
+        return 'month-and-day'
+      }else if(this.dateType === "yearAndWeek"){
+        return 'year-and-week'
+      }
     }
   },
   methods: {
@@ -594,6 +605,40 @@ $gantt_item_half: 8px;
       border-width: 6px 6px 6px 0;
       border-style: solid;
     }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+}
+
+.year-and-month{
+  .wl-item-start {
+    left: 5%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-end {
+    right: 5%;
     &:after {
       position: absolute;
       top: $gantt_item;
