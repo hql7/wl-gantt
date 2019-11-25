@@ -2,7 +2,7 @@
   <div id="app">
     <img src="./assets/logo.png" />
     <div class="wl-gantt-demo">
-      <wlGantt :data="data" start-date="2019-9-02" end-date="2020-11-24" @row-change="rowChange"></wlGantt>
+      <wlGantt :data="data" start-date="2019-9-02" end-date="2020-11-24" @timeChange="timeChange"></wlGantt>
     </div>
   </div>
 </template>
@@ -27,6 +27,7 @@ export default {
               id: "1-1",
               pid: 1,
               name: "云台之间",
+              pre: "1-1-1",
               startDate: "2019-09-01",
               endDate: "2019-09-09",
               children: [
@@ -42,8 +43,9 @@ export default {
             {
               id: "1-2",
               pid: 1,
+              pre: "1-1-1",
               name: "天空之镜",
-              startDate: "2019-09-28",
+              startDate: "2019-09-08",
               endDate: "2019-10-02"
             },
             {
@@ -79,8 +81,8 @@ export default {
     };
   },
   methods: {
-    rowChange(row) {
-      // console.log(row)
+    timeChange(row) {
+      console.log(row);
     }
   },
   components: {

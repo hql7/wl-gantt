@@ -131,7 +131,7 @@ export default {
     // 是否使用id来作为自增id，如果是请保证id本来就简短的数字型而不是较长的字符串或guid
     treatIdAsIdentityId: {
       type: Boolean,
-      default: true
+      default: false
     }
     // 是否使用一维数据组成树
     /* arrayToTree: {
@@ -245,8 +245,8 @@ export default {
     // 数据
     selfData() {
       let _data = this.data || [];
-      this.handleData(_data);
       this.self_data_list = flattenDeep(_data, this.selfProps.children);
+      this.handleData(_data);
       return _data;
     },
     // 树表配置项
@@ -325,15 +325,13 @@ export default {
     },
     /**
      * 查询目标是否在父级链或者全部子集中
+     * item 当前节点
+     * pre 前置节点
      */
-    targetInParentsOrChildren(item) {
-      // if(this.recordParents){
-      let _parents = item._parents.split(",").filter(i => !!i);
+    targetInParentsOrChildren(item, pre) {
+      let _parents = item._parents.split(",");
       let _children = item._all_children.map(i => i._identityId);
-      return _children
-        .push(..._parents)
-        .find(i => i == item[this.selfProps.pre]);
-      // }
+      return _children.concat(_parents).some(i => i == pre._identityId);
       /* let _parents = item[this.selfProps.parents].split(",").filter(i => !!i);
       let _children = item._all_children.map(i => i[this.selfProps.identityId]);
       return _children.push(..._parents).some(i => i == item[this.selfProps.pre]); */
@@ -452,6 +450,10 @@ export default {
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
     emitTimeChange(item) {
       this.$emit("timeChange", item);
+      this.$nextTick(()=>{
+        this.$set(item, "_oldStartDate", item[this.selfProps.startDate]);
+        this.$set(item, "_oldEndDate", item[this.selfProps.endDate]);
+      })
     },
     // 处理外部数据 ---------------------------------------------------------------原始数据处理-------------------------------------
     handleData(data, parent = null, level = 0) {
@@ -465,8 +467,6 @@ export default {
         if (!i._oldEndDate) {
           this.$set(i, "_oldEndDate", i[this.selfProps.endDate]);
         }
-        // 处理前置任务
-        this.handlePreTask(i);
         // 当结束时间早于开始时间时，自动处理结束时间为开始时间延后一天
         let _end_early_start = this.timeIsBefore(
           i[this.selfProps.endDate],
@@ -483,12 +483,12 @@ export default {
           );
           this.$set(i, "_cycle", _time_diff + 1); // 添加工期字段
         } // 添加工期字段
-        // 添加自增id字段及树链组成的parents字段
-        this.recordIdentityIdAndParents(i);
         // 如果当前节点的开始时间早于父节点的开始时间，则将开始时间与父节点相同
         this.parentStartDateToChild(i);
         // 校验结束时间是否晚于子节点，如不则将节点结束时间改为最晚子节点
         this.childEndDateToParent(i);
+        // 添加自增id字段及树链组成的parents字段
+        this.recordIdentityIdAndParents(i);
         if (Array.isArray(i[this.selfProps.children])) {
           this.$set(i, "_isLeaf", false); // 添加是否叶子节点字段
           let _all_children = flattenDeep(
@@ -501,6 +501,8 @@ export default {
           this.$set(i, "_isLeaf", true); // 添加是否叶子节点字段
           this.$set(i, "_all_children", []); // 添加全部子节点字段
         }
+        // 处理前置任务
+        this.handlePreTask(i);
       });
     },
     // 取父节点开始时间给早于父节点开始时间的子节点
@@ -545,21 +547,24 @@ export default {
     // 处理前置任务节点
     handlePreTask(item) {
       if (!item[this.selfProps.pre]) return;
-      let is_pre_standard = this.targetInParentsOrChildren(item);
-      if (is_pre_standard) return;
       // 找到前置目标节点
       let _pre_target = this.self_data_list.find(
-        i => i._identityId == item[this.selfProps.pre]
+        i => i[this.selfProps.id] == item[this.selfProps.pre]
       );
       if (!_pre_target) return;
+      let is_pre_standard = this.targetInParentsOrChildren(item, _pre_target);
+      if (is_pre_standard) return;
       // 查看是否需要根据前置时间，如果不符合规则，更新后置时间
       let _start_early_prvend = this.timeIsBefore(
         item[this.selfProps.startDate],
         _pre_target[this.selfProps.endDate]
       );
       if (_start_early_prvend) {
-        let _cycle = item._cycle;
-        let _to_startDate = this.timeAdd(_pre_target[this.selfProps.endDate], 1);
+        let _cycle = item._cycle - 1;
+        let _to_startDate = this.timeAdd(
+          _pre_target[this.selfProps.endDate],
+          1
+        );
         let _to_endDate = this.timeAdd(_to_startDate, _cycle);
         this.$set(item, this.selfProps.startDate, _to_startDate);
         this.$set(item, this.selfProps.endDate, _to_endDate);
@@ -617,6 +622,8 @@ export default {
         } else {
           this.$set(i, "_isLeaf", true); // 添加是否叶子节点字段
         }
+        // 处理前置任务
+        this.handlePreTask(i);
       });
     }
   },
