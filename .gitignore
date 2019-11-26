@@ -19,3 +19,11 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
+lib/wl-gantt.umd.min.js.map
+lib/wl-gantt.umd.min.js
+lib/wl-gantt.umd.js.map
+lib/wl-gantt.umd.js
+lib/wl-gantt.css
+lib/wl-gantt.common.js.map
+lib/wl-gantt.common.js
+lib/demo.html
