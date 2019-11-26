@@ -48,7 +48,7 @@
         :resizable="false"
         :key="month.id"
         :label="month.name"
-      >
+        >
         <template slot-scope="scope" v-if="dateType === 'yearAndMonth'">
           <div :class="dayGanttType(scope.row, month.full_date, 'months')"></div>
         </template>

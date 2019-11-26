@@ -2,19 +2,19 @@
   "name": "wl-gantt",
   "version": "0.1.0",
   "private": false,
-  "author": "weilan",
-  "license": "ISC",
+  "author": "weilan<https://github.com/hql7>",
+  "license": "GNU",
+  "main": "lib/wl-vue-select.common.js",
   "bugs": {
     "url": "https://github.com/hql7/wl-gantt/issues"
   },
   "homepage": "https://github.com/hql7/wl-gantt#readme",
-  "keyword": "vue gantt Gantt wl-gantt element-ui 甘特图 饿了么ui甘特图",
-  "main": "lib/wl-gantt.umd.min.js",
-  "description": "一个基于vue和element-ui的甘特图组件，gantt",
+  "keyword": "gantt Gantt project wl-gantt 甘特图 项目管理 vue element-ui 饿了么ui甘特图",
+  "description": "一个基于vue和element-ui的甘特图组件，gantt、项目管理",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lib": "vue-cli-service build --target lib --name wl-gantt --dest lib src/components/index.js",
+    "lib": "vue-cli-service build --target lib --name wl-gantt --dest lib ./src/pages/index.js",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
