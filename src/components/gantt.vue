@@ -81,7 +81,7 @@ import {
   getMax
 } from "@/assets/array.js";
 export default {
-  name: "wleGantt",
+  name: "wlGantt",
   data() {
     return {
       self_start_date: "", // 项目开始时间
