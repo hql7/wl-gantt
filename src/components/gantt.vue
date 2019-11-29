@@ -52,6 +52,7 @@
         <template slot-scope="scope" v-if="dateType === 'yearAndMonth'">
           <div :class="dayGanttType(scope.row, month.full_date, 'months')"></div>
         </template>
+        
         <!-- <el-table-column
           :resizable="false"
           class-name="wl-gantt-item"

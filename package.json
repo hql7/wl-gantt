@@ -9,7 +9,7 @@
     "url": "https://github.com/hql7/wl-gantt/issues"
   },
   "homepage": "https://github.com/hql7/wl-gantt#readme",
-  "keyword": "gantt Gantt project wl-gantt 甘特图 项目管理 vue element-ui 饿了么ui甘特图",
+  "keyword": "gantt project wl-gantt 甘特图 项目管理 任务管理 vue element-ui 饿了么ui甘特图",
   "description": "一个基于vue和element-ui的甘特图组件，gantt、项目管理",
   "scripts": {
     "serve": "vue-cli-service serve",
