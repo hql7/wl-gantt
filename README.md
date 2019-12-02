@@ -22,6 +22,9 @@
 ## [在线演示](https://hql7.github.io/)
 ## [GitHub](https://github.com/hql7)
 
+### 更新说明
+  > 2019-12-2 更新gantt日期支持` yearAndMonth、monthAndDay、yearAndWeek`类型，详见`版本记录1`；修复部分时间更改情况不回调的问题。
+
 ![demo](./src/assets/demo.png)
 
 ## 快速上手
@@ -49,7 +52,8 @@
   | 5 | endDate | 项目结束时间 | String、Object | 必填 | - | 注意：不要求任务时间线在项目开始时间内，并且当任务时间超出项目时间时，将更新项目时间 |
   | 6 | checkSource | 是否检查源数据符合规则 | Boolean | - | - | 检查源数据为自动修改不符合规范的时间为符合规则的期望值 |
   | 7 | treatIdAsIdentityId | 是否使用id来作为自增id | Boolean | - | false | 如果是请保证id本来就简短的数字型而不是较长的字符串或guid |
-  | 8 | solt | 表格列支持solt自定义内容 | - | - | - | 在默认的名字、开始时间、结束时间列之后 |
+  | 8 | autoGanttDateType | 自动调整gantt时间跨度类型，具体规则见`版本记录1` | Boolean | - | true | - |
+  | 9 | solt | 表格列支持solt自定义内容 | - | - | - | 在默认的名字、开始时间、结束时间列之后 |
 
 ### props
 | 序号 | 参数 | 说明 | 默认值 |
@@ -70,3 +74,6 @@
   | ---- | ---- | ---- | ---- |
   | 1 | timeChange | 当任务时间发生更改时触发 | function(row) 依次为当前行数据 |
 
+### 版本记录
+
+1. 0.1.5版本 更新gantt日期支持` yearAndMonth、monthAndDay、yearAndWeek`类型，并自动调整，规则为：大于12个月的自动调整为`yearAndMonth`,3个月到12个月之间的，自动调整为`yearAndWeek`, 2个月及以内的自动调整为`monthAndDay`。新增参数`autoGanttDateType`可以管理是否自动调整，如果要关闭自动调整请保证时间跨度尽可能的少，否则会有明显的性能问题。修复部分时间更改情况不回调的问题。
