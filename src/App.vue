@@ -2,7 +2,13 @@
   <div id="app">
     <img src="./assets/logo.png" />
     <div class="wl-gantt-demo">
-      <wlGantt :data="data" start-date="2019-9-02" end-date="2020-11-24" @timeChange="timeChange"></wlGantt>
+      <wlGantt
+        :data="data"
+        date-type="monthAndDay"
+        start-date="2019-9-02"
+        end-date="2020-11-24"
+        @timeChange="timeChange"
+      ></wlGantt>
     </div>
   </div>
 </template>
@@ -59,8 +65,8 @@ export default {
               id: "1-4",
               pid: 1,
               name: "西塘之南",
-              startDate: "2019-12-02",
-              endDate: "2019-12-07"
+              startDate: "2019-10-30",
+              endDate: "2019-11-02"
             },
             {
               pid: 1,
