@@ -106,6 +106,29 @@
         >{{timeFormat(scope.row[selfProps.endDate])}}</span>
       </template>
     </el-table-column>
+    <el-table-column min-width="120" show-overflow-tooltip :prop="selfProps.endDate" label="前置任务">
+      <template slot-scope="scope">
+        <el-select
+          v-if="scope.row._pre_edit"
+          multiple
+          collapse-tags
+          v-model="aaa"
+          ref="wl-pre-select"
+          placeholder="请选择前置任务"
+        >
+          <el-option
+            v-for="item in pre_options"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          ></el-option>
+        </el-select>
+        <span
+          v-else
+          @click="cellEdit(scope.row, '_pre_edit', 'wl-pre-select')"
+        >{{preFormat(scope.row[selfProps.pre])}}</span>
+      </template>
+    </el-table-column>
     <slot></slot>
     <!-- year and mouth gantt -->
     <template v-if="self_date_type === 'yearAndMonth'">
@@ -189,7 +212,9 @@ export default {
       self_date_type: "", // 自身日期类型
       self_id: 1, // 自增id
       multipleSelection: [], // 多选数据
-      currentRow: null // 单选数据
+      currentRow: null, // 单选数据
+      pre_options: [], // 可选前置节点
+      aaa: []
     };
   },
   props: {
@@ -425,6 +450,20 @@ export default {
         });
         return;
       } */
+    },
+    // 前置任务内容格式化函数
+    preFormat(data) {
+      if (!data) return "";
+      if (Array.isArray(data)) {
+        let _pre_text = "";
+        data.forEach(i => {
+          let _act = this.self_data_list.find(t => t[this.selfProps.id] === i);
+          if (_act) _pre_text += `${_act[this.selfProps.name]},`;
+        });
+        return _pre_text;
+      }
+      let _act = this.self_data_list.find(t => t[this.selfProps.id] === data);
+      return _act ? _act[this.selfProps.name] : "";
     },
     /**
      * 单元格编辑
@@ -889,14 +928,31 @@ export default {
     },
     // 处理前置任务节点
     handlePreTask(item) {
-      if (!item[this.selfProps.pre]) return;
+      if (!item[this.selfProps.pre]) return; // 没有前置任务退出
+      if (item[this.selfProps.pre] === item[this.selfProps.id]) {
+        this.$set(item, this.selfProps.pre, null);
+        return;
+      } // 前置任务是自己退出
       // 找到前置目标节点
       let _pre_target = this.self_data_list.find(
         i => i[this.selfProps.id] == item[this.selfProps.pre]
       );
-      if (!_pre_target) return;
+      if (!_pre_target) {
+        this.$set(item, this.selfProps.pre, null);
+        return;
+      } // 没找到前置任务节点数据退出
+      if (
+        _pre_target[this.selfProps.pre] &&
+        _pre_target[this.selfProps.pre] === item[this.selfProps.id]
+      ) {
+        this.$set(item, this.selfProps.pre, null);
+        return; // 前置任务的前置任务是自己【互相前置】退出
+      }
       let is_pre_standard = this.targetInParentsOrChildren(item, _pre_target);
-      if (is_pre_standard) return;
+      if (is_pre_standard) {
+        this.$set(item, this.selfProps.pre, null);
+        return;
+      } // 前置任务是自己的父祖或子孙节点退出
       // 查看是否需要根据前置时间，如果不符合规则，更新后置时间
       let _start_early_prvend = this.timeIsBefore(
         item[this.selfProps.startDate],
