@@ -1,43 +1,109 @@
 <template>
   <el-table
-    border
-    row-key="id"
     ref="wl-gantt"
     class="wl-gantt"
-    current-row-key="id"
-    default-expand-all
+    :fit="fit"
+    :size="size"
+    :border="border"
     :data="selfData"
+    :stripe="stripe"
+    :height="height"
+    :row-key="rowKey"
+    :row-style="rowStyle"
     :class="dateTypeClass"
+    :cell-style="cellStyle"
+    :max-height="maxHeight"
     :tree-props="selfProps"
-    header-row-class-name="wl-gantt-header"
+    :current-row-key="rowKey"
+    :row-class-name="rowClassName"
+    :cell-class-name="cellClassName"
+    :expand-row-keys="expandRowKeys"
+    :header-row-style="headerRowStyle"
+    :header-cell-style="headerCellStyle"
+    :default-expand-all="defaultExpandAll"
+    :header-row-class-name="headerRowClassName"
+    :highlight-current-row="highlightCurrentRow"
+    :header-cell-class-name="headerCellClassName"
+    @header-contextmenu="handleHeaderContextMenu"
+    @selection-change="handleSelectionChange"
+    @row-contextmenu="handleRowContextMenu"
+    @current-change="handleCurrentChange"
+    @cell-mouse-enter="handleMouseEnter"
+    @cell-mouse-leave="handleMouseLeave"
+    @expand-change="handleExpandChange"
+    @filter-change="handleFilterChange"
+    @cell-dblclick="handleCellDbClick"
+    @header-click="handleHeaderClick"
+    @row-dblclick="handleRowDbClick"
+    @sort-change="handleSortChange"
+    @cell-click="handleCellClick"
+    @select-all="handleSelectAll"
+    @row-click="handleRowClick"
+    @select="handleSelect"
   >
-    <el-table-column :resizable="false" fixed :prop="selfProps.name" width="160" label="名称"></el-table-column>
-    <el-table-column :resizable="false" fixed width="160" :prop="selfProps.startDate" label="开始日期">
+    <slot name="prv"></slot>
+    <el-table-column
+      fixed
+      label="名称"
+      min-width="200"
+      show-overflow-tooltip
+      :prop="selfProps.name"
+      :formatter="nameFormatter"
+    ></el-table-column>
+    <el-table-column
+      :resizable="false"
+      fixed
+      width="160"
+      align="center"
+      :prop="selfProps.startDate"
+      label="开始日期"
+    >
       <template slot-scope="scope">
         <el-date-picker
+          v-if="scope.row._start_edit"
           v-model="scope.row[selfProps.startDate]"
+          @blur="scope.row._start_edit = false"
           @change="startDateChange(scope.row)"
           type="date"
           size="medium"
           class="u-full"
           :clearable="false"
+          ref="wl-start-date"
           value-format="yyyy-MM-dd"
           placeholder="请选择开始日期"
         ></el-date-picker>
+        <span
+          v-else
+          @click="cellEdit(scope.row, '_start_edit', 'wl-start-date')"
+        >{{timeFormat(scope.row[selfProps.startDate])}}</span>
       </template>
     </el-table-column>
-    <el-table-column fixed :resizable="false" width="160" :prop="selfProps.endDate" label="结束日期">
+    <el-table-column
+      fixed
+      :resizable="false"
+      width="160"
+      align="center"
+      :prop="selfProps.endDate"
+      label="结束日期"
+    >
       <template slot-scope="scope">
         <el-date-picker
+          v-if="scope.row._end_edit"
           v-model="scope.row[selfProps.endDate]"
-          @change="endDateChange(scope.row, 'end')"
+          @blur="scope.row._end_edit = false"
+          @change="endDateChange(scope.row)"
           type="date"
           size="medium"
           class="u-full"
           :clearable="false"
+          ref="wl-end-date"
           value-format="yyyy-MM-dd"
           placeholder="请选择结束日期"
         ></el-date-picker>
+        <span
+          v-else
+          @click="cellEdit(scope.row, '_end_edit', 'wl-end-date')"
+        >{{timeFormat(scope.row[selfProps.endDate])}}</span>
       </template>
     </el-table-column>
     <slot></slot>
@@ -121,7 +187,9 @@ export default {
       self_end_date: "", // 项目结束时间
       self_data_list: [], // 一维化后的gantt数据
       self_date_type: "", // 自身日期类型
-      self_id: 1 // 自增id
+      self_id: 1, // 自增id
+      multipleSelection: [], // 多选数据
+      currentRow: null // 单选数据
     };
   },
   props: {
@@ -171,7 +239,48 @@ export default {
     autoGanttDateType: {
       type: Boolean,
       default: true
-    }
+    },
+    nameFormatter: Function, // 名称列的格式化内容函数
+    // ---------------------------------------------以下为el-table Attributes--------------------------------------------
+    defaultExpandAll: {
+      type: Boolean,
+      default: false
+    }, // 是否全部展开
+    rowKey: {
+      type: String,
+      default: "id"
+    }, // 必须指定key来渲染树形数据
+    height: [String, Number], // 列表高度
+    maxHeight: [String, Number], // 列表最大高度
+    stripe: {
+      type: Boolean,
+      default: false
+    }, // 是否为斑马纹
+    highlightCurrentRow: {
+      type: Boolean,
+      default: false
+    }, // 是否要高亮当前行
+    border: {
+      type: Boolean,
+      default: true
+    }, // 是否带有纵向边框
+    fit: {
+      type: Boolean,
+      default: true
+    }, // 列的宽度是否自撑开
+    size: String, // Table 的尺寸
+    rowClassName: Function, // 行的 className 的回调方法
+    rowStyle: Function, // 行的 style 的回调方法
+    cellClassName: Function, // 单元格的 className 的回调方法
+    cellStyle: Function, // 单元格的 style 的回调方法
+    headerRowClassName: {
+      type: [Function, String],
+      default: "wl-gantt-header"
+    }, // 表头行的 className 的回调方法
+    headerRowStyle: [Function, Object], // 表头行的 style 的回调方法
+    headerCellClassName: [Function, String], // 表头单元格的 className 的回调方法
+    headerCellStyle: [Function, Object], // 表头单元格的 style 的回调方法
+    expandRowKeys: Array // 可以通过该属性设置 Table 目前的展开行
     // 是否使用一维数据组成树
     /* arrayToTree: {
       type: Boolean,
@@ -244,8 +353,8 @@ export default {
     // 树表配置项
     selfProps() {
       return {
-        hasChildren: "hasChildren",
-        children: "children", // children字段
+        hasChildren: "hasChildren", // 字段来指定哪些行是包含子节点
+        children: "children", // children字段来表示有子节点
         name: "name", // 任务名称字段
         id: "id", // id字段
         pid: "pid", // pid字段
@@ -293,14 +402,14 @@ export default {
       if (_early_project_start) {
         this.self_start_date = row[this.selfProps.startDate];
       }
-      this.emitTimeChange(row); 
+      this.emitTimeChange(row);
     },
     /**
      * 结束时间改变
      * row: object 当前行数据
      */
     endDateChange(row) {
-      this.emitTimeChange(row); 
+      this.emitTimeChange(row);
       // 如果开始晚于结束，提示
       /* if (
         this.timeIsBefore(
@@ -316,6 +425,18 @@ export default {
         });
         return;
       } */
+    },
+    /**
+     * 单元格编辑
+     * row: object 当前行数据
+     * key: string 需要操作的字段
+     * ref：object 需要获取焦点的dom
+     */
+    cellEdit(row, key, ref) {
+      row[key] = true;
+      this.$nextTick(() => {
+        this.$refs[ref].focus();
+      });
     },
     /**
      * 查询目标是否在父级链或者全部子集中
@@ -565,10 +686,10 @@ export default {
       if (week) {
         let _day = 1; // 从周日开始
         let _start_day_inweek = this.timeInWeek(`${year}-${month}-1`);
-        if( _start_day_inweek !== 0){
-          _day = 8 - _start_day_inweek
+        if (_start_day_inweek !== 0) {
+          _day = 8 - _start_day_inweek;
         }
-        for (let i = _day; i < dates_num; i+=7) {
+        for (let i = _day; i < dates_num; i += 7) {
           days.push({
             date: i,
             name: `${i}日`,
@@ -661,7 +782,7 @@ export default {
     /**
      * 查询时间是周几
      */
-    timeInWeek(date){
+    timeInWeek(date) {
       return dayjs(date).day();
     },
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
@@ -720,6 +841,11 @@ export default {
         }
         // 处理前置任务
         this.handlePreTask(i);
+        if (!i.hasOwnProperty("_start_edit")) {
+          // 添加编辑字段管理可编辑项的显示
+          this.$set(i, "_start_edit", false);
+          this.$set(i, "_end_edit", false);
+        }
       });
     },
     // 取父节点开始时间给早于父节点开始时间的子节点
@@ -841,8 +967,64 @@ export default {
         }
         // 处理前置任务
         this.handlePreTask(i);
+        if (!i.hasOwnProperty("_start_edit")) {
+          // 添加编辑字段管理可编辑项的显示
+          this.$set(i, "_start_edit", false);
+          this.$set(i, "_end_edit", false);
+        }
       });
-    }
+    },
+    // el-table事件----------------------------------------------以下为原el-table事件输出------------------------------------------------
+    handleSelectionChange(val) {
+      this.$emit("selection-change", val);
+      this.multipleSelection = val;
+    }, // 当选择项发生变化时会触发该事件
+    handleCurrentChange(val, oldVal) {
+      this.$emit("current-change", val, oldVal);
+      this.currentRow = val;
+    }, // 当表格的当前行发生变化的时候会触发该事件
+    handleSelectAll(val) {
+      this.$emit("select-all", val);
+    }, // 当用户手动勾选全选 Checkbox 时触发的事件
+    handleSelect(selection, row) {
+      this.$emit("select", selection, row);
+    }, // 当用户手动勾选全选 Checkbox 时触发的事件
+    handleMouseEnter(row, column, cell, event) {
+      this.$emit("cell-mouse-enter", row, column, cell, event);
+    }, // 当单元格 hover 进入时会触发该事件
+    handleMouseLeave(row, column, cell, event) {
+      this.$emit("cell-mouse-leave", row, column, cell, event);
+    }, // 当单元格 hover 退出时会触发该事件
+    handleCellClick(row, column, cell, event) {
+      this.$emit("cell-click", row, column, cell, event);
+    }, // 当某个单元格被点击时会触发该事件
+    handleCellDbClick(row, column, cell, event) {
+      this.$emit("cell-dblclick", row, column, cell, event);
+    }, // 当某个单元格被双击击时会触发该事件
+    handleRowClick(row, column, event) {
+      this.$emit("row-click", row, column, event);
+    }, // 当某一行被点击时会触发该事件
+    handleRowContextMenu(row, column, event) {
+      this.$emit("row-contextmenu", row, column, event);
+    }, // 当某一行被鼠标右键点击时会触发该事件
+    handleRowDbClick(row, column, event) {
+      this.$emit("row-dblclick", row, column, event);
+    }, // 当某一行被双击时会触发该事件
+    handleHeaderClick(column, event) {
+      this.$emit("header-click", column, event);
+    }, // 当某一列的表头被点击时会触发该事件
+    handleHeaderContextMenu(column, event) {
+      this.$emit("header-contextmenu", column, event);
+    }, // 当某一列的表头被鼠标右键点击时触发该事件
+    handleSortChange(e) {
+      this.$emit("sort-change", e);
+    }, // 当表格的排序条件发生变化的时候会触发该事件
+    handleFilterChange(filters) {
+      this.$emit("filter-change", filters);
+    }, // 当表格的筛选条件发生变化的时候会触发该事件
+    handleExpandChange(row, expanded) {
+      this.$emit("expand-change", row, expanded);
+    } // 当表格的筛选条件发生变化的时候会触发该事件
   },
   watch: {
     dateType(val) {

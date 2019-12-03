@@ -3,11 +3,13 @@
     <img src="./assets/logo.png" />
     <div class="wl-gantt-demo">
       <wlGantt
+        default-expand-all
         :data="data"
         date-type="monthAndDay"
         start-date="2019-9-02"
         end-date="2020-11-24"
         @timeChange="timeChange"
+        @expand-change="expandChange"
       ></wlGantt>
     </div>
   </div>
@@ -32,7 +34,7 @@ export default {
             {
               id: "1-1",
               pid: 1,
-              name: "云台之间",
+              name: "云台之间云台之间云台之间云台之间云台之间云台之间云台之间",
               pre: "1-1-1",
               startDate: "2019-09-01",
               endDate: "2019-09-09",
@@ -87,9 +89,14 @@ export default {
     };
   },
   methods: {
+    // 时间发生更改
     timeChange(row) {
       console.log(row);
-    }
+    },
+    // 数表展开行
+    expandChange(row, expanded){
+      console.log(row, expanded)
+    },
   },
   components: {
     wlGantt

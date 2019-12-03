@@ -1,6 +1,7 @@
 {
   "name": "wl-gantt",
-  "version": "0.1.5",
+  "version": "0.1.6",
+  
   "private": false,
   "author": "weilan<https://github.com/hql7>",
   "license": "GNU",
