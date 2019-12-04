@@ -1020,6 +1020,35 @@ export default {
         this.$set(item, this.selfProps.endDate, _to_endDate);
       }
     },
+    // 检查前置任务合法性
+    checkPreTaskValidity(item) {
+      // 没有前置任务退出
+      if (!item[this.selfProps.pre]) return false;
+      // 多前置任务模式
+      if (this.preMultiple) {
+        let _pres = item[this.selfProps.pre];
+        // 不是数组退出
+        if (!Array.isArray(_pres)) {
+          this.$set(item, this.selfProps.pre, []);
+          return false;
+        }
+        // 数组为空退出
+        if (_pres.length === 0) return false;
+        // 前置任务有自己时，剔除自己
+        let _taget_index = _pres.findIndex(
+          i => i === item[this.selfProps.id]
+        );
+        if (_taget_index !== -1) {
+          let _new_pres = _pres.splice(_taget_index, 1);
+          this.$set(item, this.selfProps.pre, _new_pres);
+          return true;
+        }
+        // 
+        let _pre_target = this.self_data_list.find(
+          i => i[this.selfProps.id] == item[this.selfProps.pre]
+        );
+      }
+    },
     // 处理数据生成自增id和树链parents
     recordIdentityIdAndParents(item) {
       // if (!this.recordParents) return;
