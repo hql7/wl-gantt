@@ -108,29 +108,36 @@
         >{{timeFormat(scope.row[selfProps.endDate])}}</div>
       </template>
     </el-table-column>
-    <el-table-column min-width="140" show-overflow-tooltip align="center" :prop="selfProps.endDate" label="前置任务">
+    <el-table-column
+      v-if="usePreColumn"
+      align="center"
+      min-width="140"
+      label="前置任务"
+      show-overflow-tooltip
+      :prop="selfProps.endDate"
+    >
       <template slot-scope="scope">
         <el-select
           v-if="self_cell_edit === '_p_t_' + scope.$index"
           @blur="self_cell_edit = null"
-          multiple
-          collapse-tags
           v-model="aaa"
+          collapse-tags
+          :multiple="preMultiple"
           ref="wl-pre-select"
           placeholder="请选择前置任务"
-          >
+        >
           <el-option
             v-for="item in pre_options"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
+            :key="item[selfProps.id]"
+            :label="item[selfProps.name]"
+            :value="item[selfProps.id]"
           ></el-option>
         </el-select>
         <div
           v-else
           class="h-full"
-          @click="cellEdit('_p_t_' + scope.$index, 'wl-pre-select')"
-        >{{preFormat(scope.row[selfProps.pre])}}</div>
+          @click="preCellEdit(scope.row, '_p_t_' + scope.$index, 'wl-pre-select')"
+        >{{preFormat(scope.row)}}</div>
       </template>
     </el-table-column>
     <slot></slot>
@@ -271,6 +278,22 @@ export default {
       default: true
     },
     nameFormatter: Function, // 名称列的格式化内容函数
+    // 是否使用内置前置任务列
+    usePreColumn: {
+      type: Boolean,
+      default: true
+    },
+    // 是否开启前置任务多选 如果开启多选则pre字段必须是Array，否则可以是Number\String
+    preMultiple: {
+      type: Boolean,
+      default: false
+    },
+    preFormatter: Function, // 前置任务列的格式化内容函数
+    // 空单元格占位符
+    emptyCellText: {
+      type: String,
+      default: "-"
+    },
     // ---------------------------------------------以下为el-table Attributes--------------------------------------------
     defaultExpandAll: {
       type: Boolean,
@@ -456,10 +479,19 @@ export default {
         return;
       } */
     },
-    // 前置任务内容格式化函数
-    preFormat(data) {
-      if (!data) return "-";
+    /**
+     * 前置任务内容格式化函数
+     * data：[String, Array] 前置任务
+     */
+    preFormat(row) {
+      // 自定义格式化前置任务列函数
+      if (this.preFormatter) {
+        return this.preFormatter(row);
+      }
+      let data = row[this.selfProps.pre];
+      if (!data) return this.emptyCellText;
       if (Array.isArray(data)) {
+        if (data.length === 0) return this.emptyCellText;
         let _pre_text = "";
         data.forEach(i => {
           let _act = this.self_data_list.find(t => t[this.selfProps.id] === i);
@@ -468,7 +500,27 @@ export default {
         return _pre_text;
       }
       let _act = this.self_data_list.find(t => t[this.selfProps.id] === data);
-      return _act ? _act[this.selfProps.name] : "";
+      return _act ? _act[this.selfProps.name] : this.emptyCellText;
+    },
+    /**
+     * 前置任务编辑
+     */
+    preCellEdit(row, key, ref) {
+      let _parents = row._parents.split(","); // 父祖节点不可选
+      let _children = row._all_children.map(i => i._identityId); // 子孙节点不可选
+      let _parents_and_children = _children.concat(_parents);
+      let filter_options = this.self_data_list.filter(
+        i => !_parents_and_children.includes(i._identityId)
+      );
+      this.pre_options = this.preMultiple // 前置任务是自己的不可选
+        ? filter_options.filter(
+            i => !i[this.selfProps.pre].includes(row[this.selfProps.id])
+          )
+        : filter_options.filter(
+            i => i[this.selfProps.pre] !== row[this.selfProps.id]
+          );
+      // 调用单元格编辑
+      this.cellEdit(key, ref);
     },
     /**
      * 单元格编辑
@@ -686,7 +738,7 @@ export default {
       isLeap = false,
       insert_days = true,
       week = false
-      ) {
+    ) {
       let months = [];
       if (insert_days) {
         // 无需 日 的模式
@@ -820,7 +872,7 @@ export default {
      * format 格式化的格式
      */
     timeFormat(date, format = "YYYY-MM-DD") {
-      return date ? dayjs(date).format(format) : '-';
+      return date ? dayjs(date).format(format) : this.emptyCellText;
     },
     /**
      * 查询时间是周几
@@ -1105,7 +1157,7 @@ $gantt_item_half: 8px;
     text-align: center;
   }
 
-  .h-full{
+  .h-full {
     height: 100%;
   }
 
