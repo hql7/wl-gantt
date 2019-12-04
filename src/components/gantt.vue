@@ -60,10 +60,10 @@
     >
       <template slot-scope="scope">
         <el-date-picker
-          v-if="scope.row._start_edit"
+          v-if="self_cell_edit === '_s_d_' + scope.$index"
           v-model="scope.row[selfProps.startDate]"
-          @blur="scope.row._start_edit = false"
           @change="startDateChange(scope.row)"
+          @blur="self_cell_edit = null"
           type="date"
           size="medium"
           class="u-full"
@@ -72,10 +72,11 @@
           value-format="yyyy-MM-dd"
           placeholder="请选择开始日期"
         ></el-date-picker>
-        <span
+        <div
           v-else
-          @click="cellEdit(scope.row, '_start_edit', 'wl-start-date')"
-        >{{timeFormat(scope.row[selfProps.startDate])}}</span>
+          class="h-full"
+          @click="cellEdit( '_s_d_' + scope.$index, 'wl-start-date')"
+        >{{timeFormat(scope.row[selfProps.startDate])}}</div>
       </template>
     </el-table-column>
     <el-table-column
@@ -88,10 +89,10 @@
     >
       <template slot-scope="scope">
         <el-date-picker
-          v-if="scope.row._end_edit"
+          v-if="self_cell_edit === '_e_d_' + scope.$index"
           v-model="scope.row[selfProps.endDate]"
-          @blur="scope.row._end_edit = false"
           @change="endDateChange(scope.row)"
+          @blur="self_cell_edit = null"
           type="date"
           size="medium"
           class="u-full"
@@ -100,22 +101,24 @@
           value-format="yyyy-MM-dd"
           placeholder="请选择结束日期"
         ></el-date-picker>
-        <span
+        <div
           v-else
-          @click="cellEdit(scope.row, '_end_edit', 'wl-end-date')"
-        >{{timeFormat(scope.row[selfProps.endDate])}}</span>
+          class="h-full"
+          @click="cellEdit('_e_d_' + scope.$index, 'wl-end-date')"
+        >{{timeFormat(scope.row[selfProps.endDate])}}</div>
       </template>
     </el-table-column>
-    <el-table-column min-width="120" show-overflow-tooltip :prop="selfProps.endDate" label="前置任务">
+    <el-table-column min-width="140" show-overflow-tooltip align="center" :prop="selfProps.endDate" label="前置任务">
       <template slot-scope="scope">
         <el-select
-          v-if="scope.row._pre_edit"
+          v-if="self_cell_edit === '_p_t_' + scope.$index"
+          @blur="self_cell_edit = null"
           multiple
           collapse-tags
           v-model="aaa"
           ref="wl-pre-select"
           placeholder="请选择前置任务"
-        >
+          >
           <el-option
             v-for="item in pre_options"
             :key="item.value"
@@ -123,10 +126,11 @@
             :value="item.value"
           ></el-option>
         </el-select>
-        <span
+        <div
           v-else
-          @click="cellEdit(scope.row, '_pre_edit', 'wl-pre-select')"
-        >{{preFormat(scope.row[selfProps.pre])}}</span>
+          class="h-full"
+          @click="cellEdit('_p_t_' + scope.$index, 'wl-pre-select')"
+        >{{preFormat(scope.row[selfProps.pre])}}</div>
       </template>
     </el-table-column>
     <slot></slot>
@@ -211,6 +215,7 @@ export default {
       self_data_list: [], // 一维化后的gantt数据
       self_date_type: "", // 自身日期类型
       self_id: 1, // 自增id
+      self_cell_edit: null, // 正在编辑的单元格
       multipleSelection: [], // 多选数据
       currentRow: null, // 单选数据
       pre_options: [], // 可选前置节点
@@ -453,7 +458,7 @@ export default {
     },
     // 前置任务内容格式化函数
     preFormat(data) {
-      if (!data) return "";
+      if (!data) return "-";
       if (Array.isArray(data)) {
         let _pre_text = "";
         data.forEach(i => {
@@ -467,12 +472,11 @@ export default {
     },
     /**
      * 单元格编辑
-     * row: object 当前行数据
-     * key: string 需要操作的字段
+     * key: string 需要操作的单元格key
      * ref：object 需要获取焦点的dom
      */
-    cellEdit(row, key, ref) {
-      row[key] = true;
+    cellEdit(key, ref) {
+      this.self_cell_edit = key;
       this.$nextTick(() => {
         this.$refs[ref].focus();
       });
@@ -682,7 +686,7 @@ export default {
       isLeap = false,
       insert_days = true,
       week = false
-    ) {
+      ) {
       let months = [];
       if (insert_days) {
         // 无需 日 的模式
@@ -816,7 +820,7 @@ export default {
      * format 格式化的格式
      */
     timeFormat(date, format = "YYYY-MM-DD") {
-      return dayjs(date).format(format);
+      return date ? dayjs(date).format(format) : '-';
     },
     /**
      * 查询时间是周几
@@ -880,11 +884,6 @@ export default {
         }
         // 处理前置任务
         this.handlePreTask(i);
-        if (!i.hasOwnProperty("_start_edit")) {
-          // 添加编辑字段管理可编辑项的显示
-          this.$set(i, "_start_edit", false);
-          this.$set(i, "_end_edit", false);
-        }
       });
     },
     // 取父节点开始时间给早于父节点开始时间的子节点
@@ -1023,11 +1022,6 @@ export default {
         }
         // 处理前置任务
         this.handlePreTask(i);
-        if (!i.hasOwnProperty("_start_edit")) {
-          // 添加编辑字段管理可编辑项的显示
-          this.$set(i, "_start_edit", false);
-          this.$set(i, "_end_edit", false);
-        }
       });
     },
     // el-table事件----------------------------------------------以下为原el-table事件输出------------------------------------------------
@@ -1109,6 +1103,10 @@ $gantt_item_half: 8px;
 .wl-gantt {
   .wl-gantt-header > th {
     text-align: center;
+  }
+
+  .h-full{
+    height: 100%;
   }
 
   .wl-gantt-item {
