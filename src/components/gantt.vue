@@ -533,19 +533,6 @@ export default {
         this.$refs[ref].focus();
       });
     },
-    /**
-     * 查询目标是否在父级链或者全部子集中
-     * item 当前节点
-     * pre 前置节点
-     */
-    targetInParentsOrChildren(item, pre) {
-      let _parents = item._parents.split(",");
-      let _children = item._all_children.map(i => i._identityId);
-      return _children.concat(_parents).some(i => i == pre._identityId);
-      /* let _parents = item[this.selfProps.parents].split(",").filter(i => !!i);
-      let _children = item._all_children.map(i => i[this.selfProps.identityId]);
-      return _children.push(..._parents).some(i => i == item[this.selfProps.pre]); */
-    },
     // 以下是表格-日期-gantt生成函数----------------------------------------生成gantt表格-------------------------------------
     /**
      * 年-月模式gantt标题
@@ -881,12 +868,21 @@ export default {
       return dayjs(date).day();
     },
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
+    // 任务时间更改
     emitTimeChange(item) {
       this.$emit("timeChange", item);
       this.$nextTick(() => {
         this.$set(item, "_oldStartDate", item[this.selfProps.startDate]);
         this.$set(item, "_oldEndDate", item[this.selfProps.endDate]);
       });
+    },
+    /**
+     * 前置任务更改
+     * item: Object 发生更改的行数据
+     * handle: Boolean true为操作选择框修改 false为源数据不符合规范的修正更改
+     */
+    emitPreChange(item, handle = false) {
+      this.$emit("preChange", item, handle);
     },
     // 处理外部数据 ---------------------------------------------------------------原始数据处理-------------------------------------
     handleData(data, parent = null, level = 0) {
@@ -1030,23 +1026,48 @@ export default {
         // 不是数组退出
         if (!Array.isArray(_pres)) {
           this.$set(item, this.selfProps.pre, []);
+          this.emitPreChange(item);
           return false;
         }
         // 数组为空退出
         if (_pres.length === 0) return false;
         // 前置任务有自己时，剔除自己
-        let _taget_index = _pres.findIndex(
-          i => i === item[this.selfProps.id]
-        );
-        if (_taget_index !== -1) {
-          let _new_pres = _pres.splice(_taget_index, 1);
-          this.$set(item, this.selfProps.pre, _new_pres);
-          return true;
+        let _net_self_pres = _pres.filter(i => i !== item[this.selfProps.id]);
+        if (_net_self_pres.length !== _pres.length) {
+          this.$set(item, this.selfProps.pre, _net_self_pres);
+          this.emitPreChange(item);
         }
-        // 
-        let _pre_target = this.self_data_list.find(
-          i => i[this.selfProps.id] == item[this.selfProps.pre]
-        );
+        // 剔除前置任务找不到目标数据的元素
+        let _pre_exist = _net_self_pres.filter(i => this.targetInAllData(i));
+        if (_pre_exist.length !== _net_self_pres.length) {
+          this.$set(item, this.selfProps.pre, _pre_exist);
+          this.emitPreChange(item);
+        }
+        let _no_parent_chiildren = []; // 声明非父、祖、子、孙节点的盒子
+        _pre_exist.forEach(i => {
+          let _pre_target = this.self_data_list.find(
+            t => t[this.selfProps.id] === i
+          );
+          // 前置任务的前置任务有自己【互相前置】，从前置任务的前置任务中剔除自己
+          let pre_net_self = _pre_target[this.selfProps.pre].filter(
+            i => i !== item[this.selfProps.id]
+          );
+          if (pre_net_self.length !== _pre_target[this.selfProps.pre].length) {
+            this.$set(_pre_target, this.selfProps.pre, pre_net_self);
+            this.emitPreChange(_pre_target);
+          }
+          // 筛选前置目标不是父祖子孙节点的有效前置
+          let _pre_pa_ch = this.targetInParentsOrChildren(item, _pre_target);
+          if (!_pre_pa_ch) {
+            _no_par_chi.push(i)
+          }
+        });
+        // 前置任务是自己的父祖或子孙节点, 剔除此前置
+        if(_no_par_chi.length !== _pre_exist.length){
+          this.$set(item, this.selfProps.pre, _no_par_chi);
+          this.emitPreChange(item);
+        }
+        return true;
       }
     },
     // 处理数据生成自增id和树链parents
@@ -1068,6 +1089,20 @@ export default {
         ? item._parent._parents + "," + item._parent._identityId
         : "";
       this.$set(item, "_parents", _parents);
+    },
+    /**
+     * 查询目标是否在父级链或者全部子集中
+     * item 当前节点
+     * pre 前置节点
+     */
+    targetInParentsOrChildren(item, pre) {
+      let _parents = item._parents.split(",");
+      let _children = item._all_children.map(i => i._identityId);
+      return _children.concat(_parents).some(i => i == pre._identityId);
+    },
+    // 查询目标节点是否在数据中存在
+    targetInAllData(target_id) {
+      return this.self_data_list.some(i => i[this.selfProps.id] === target_id);
     },
     // 简洁处理数据
     terseHandleData(data, parent = null, level = 0) {
