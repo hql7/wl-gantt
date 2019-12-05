@@ -223,6 +223,7 @@ export default {
       self_date_type: "", // 自身日期类型
       self_id: 1, // 自增id
       self_cell_edit: null, // 正在编辑的单元格
+      self_dependent_store: [], // 自身依赖库
       multipleSelection: [], // 多选数据
       currentRow: null, // 单选数据
       pre_options: [], // 可选前置节点
@@ -399,7 +400,11 @@ export default {
     // 数据
     selfData() {
       let _data = this.data || [];
+      // 生成一维数据
       this.self_data_list = flattenDeep(_data, this.selfProps.children);
+      // 处理前置依赖
+      this.handleDependentStore();
+      // 处理源数据合法性
       this.handleData(_data);
       return _data;
     },
@@ -931,7 +936,7 @@ export default {
           this.$set(i, "_all_children", []); // 添加全部子节点字段
         }
         // 处理前置任务
-        this.handlePreTask(i);
+        // this.handlePreTask(i);
       });
     },
     // 取父节点开始时间给早于父节点开始时间的子节点
@@ -975,31 +980,6 @@ export default {
     },
     // 处理前置任务节点
     handlePreTask(item) {
-      if (!item[this.selfProps.pre]) return; // 没有前置任务退出
-      if (item[this.selfProps.pre] === item[this.selfProps.id]) {
-        this.$set(item, this.selfProps.pre, null);
-        return;
-      } // 前置任务是自己退出
-      // 找到前置目标节点
-      let _pre_target = this.self_data_list.find(
-        i => i[this.selfProps.id] == item[this.selfProps.pre]
-      );
-      if (!_pre_target) {
-        this.$set(item, this.selfProps.pre, null);
-        return;
-      } // 没找到前置任务节点数据退出
-      if (
-        _pre_target[this.selfProps.pre] &&
-        _pre_target[this.selfProps.pre] === item[this.selfProps.id]
-      ) {
-        this.$set(item, this.selfProps.pre, null);
-        return; // 前置任务的前置任务是自己【互相前置】退出
-      }
-      let is_pre_standard = this.targetInParentsOrChildren(item, _pre_target);
-      if (is_pre_standard) {
-        this.$set(item, this.selfProps.pre, null);
-        return;
-      } // 前置任务是自己的父祖或子孙节点退出
       // 查看是否需要根据前置时间，如果不符合规则，更新后置时间
       let _start_early_prvend = this.timeIsBefore(
         item[this.selfProps.startDate],
@@ -1043,32 +1023,47 @@ export default {
           this.$set(item, this.selfProps.pre, _pre_exist);
           this.emitPreChange(item);
         }
-        let _no_parent_chiildren = []; // 声明非父、祖、子、孙节点的盒子
-        _pre_exist.forEach(i => {
+        let _no_par_chi = []; // 声明非父、祖、子、孙节点的盒子
+        for (let i of _pre_exist) {
           let _pre_target = this.self_data_list.find(
             t => t[this.selfProps.id] === i
           );
-          // 前置任务的前置任务有自己【互相前置】，从前置任务的前置任务中剔除自己
-          let pre_net_self = _pre_target[this.selfProps.pre].filter(
-            i => i !== item[this.selfProps.id]
-          );
-          if (pre_net_self.length !== _pre_target[this.selfProps.pre].length) {
-            this.$set(_pre_target, this.selfProps.pre, pre_net_self);
-            this.emitPreChange(_pre_target);
-          }
-          // 筛选前置目标不是父祖子孙节点的有效前置
-          let _pre_pa_ch = this.targetInParentsOrChildren(item, _pre_target);
-          if (!_pre_pa_ch) {
-            _no_par_chi.push(i)
-          }
-        });
+          if (!_pre_target) continue;
+          let _pre_par_chi = this.targetInParentsOrChildren(item, _pre_target);
+          _pre_par_chi || _no_par_chi.push(i);
+        }
         // 前置任务是自己的父祖或子孙节点, 剔除此前置
-        if(_no_par_chi.length !== _pre_exist.length){
+        if (_no_par_chi.length !== _pre_exist.length) {
           this.$set(item, this.selfProps.pre, _no_par_chi);
           this.emitPreChange(item);
         }
+        // 处理前置任务链链中产生了回环【A->B,B->C,C->D,D->B】即前置链中形成了相互前置的节点，剔除其错误前置数据
+        this.targetLinkLoopback(item);
         return true;
       }
+      // 单前置任务模式
+      if (item[this.selfProps.pre] === item[this.selfProps.id]) {
+        this.$set(item, this.selfProps.pre, null);
+        return false;
+      } // 前置任务是自己退出
+      // 找到前置目标节点
+      let _pre_target = this.self_data_list.find(
+        i => i[this.selfProps.id] == item[this.selfProps.pre]
+      );
+      // 没找到前置任务节点数据退出
+      if (!_pre_target) {
+        this.$set(item, this.selfProps.pre, null);
+        return false;
+      }
+      // 前置任务是自己的父祖或子孙节点退出
+      let is_pre_standard = this.targetInParentsOrChildren(item, _pre_target);
+      if (is_pre_standard) {
+        this.$set(item, this.selfProps.pre, null);
+        return false;
+      }
+      // 处理前置任务链链中产生了回环【A->B,B->C,C->D,D->B】即前置链中形成了相互前置的节点，剔除其错误前置数据
+      this.targetLinkLoopback(item);
+      return true;
     },
     // 处理数据生成自增id和树链parents
     recordIdentityIdAndParents(item) {
@@ -1103,6 +1098,55 @@ export default {
     // 查询目标节点是否在数据中存在
     targetInAllData(target_id) {
       return this.self_data_list.some(i => i[this.selfProps.id] === target_id);
+    },
+    /**
+     * 处理前置任务链链中产生了回环【A->B,B->C,C->D,D->B】即前置链中形成了相互前置的节点，剔除其错误前置数据
+     * item: Object 当前节点数据
+     * pre_tesk: Array 前置链上所有id
+     * 注意：下方尝试改成form to结构收集起来处理，不再循环中反复循环处理
+     */
+    targetLinkLoopback(item, pre_tesk = []) {
+      pre_tesk.push(item[this.selfProps.id]);
+      let _pres = item[this.selfProps.pre];
+      if (this.preMultiple) {
+        let _legal_pres = _pres.filter(i => !pre_tesk.includes(i));
+        if (_legal_pres.length !== _pres.length) {
+          this.$set(item, this.selfProps.pre, _no_par_chi);
+          this.emitPreChange(item);
+        }
+        _legal_pres.forEach(i => {
+          let _pre_target = this.self_data_list.find(
+            t => t[this.selfProps.id] === i
+          );
+          if (
+            _pre_target &&
+            Array.isArray(_pre_target[this.selfProps.pre]) &&
+            _pre_target[this.selfProps.pre].length > 0
+          ) {
+            this.targetLinkLoopback(_pre_target, pre_tesk);
+          }
+        });
+      } else {
+        if (pre_tesk.includes(_pres)) {
+          this.$set(item, this.selfProps.pre, _no_par_chi);
+          this.emitPreChange(item);
+        }
+        let _pre_target = this.self_data_list.find(
+          t => t[this.selfProps.id] === i
+        );
+        if (_pre_target) {
+          this.targetLinkLoopback(_pre_target, pre_tesk);
+        }
+      }
+    },
+    /**
+     * 处理前置任务链链中产生了回环【A->B,B->C,C->D,D->B】即前置链中形成了相互前置的节点，剔除其错误前置数据
+     * item: Object 当前节点数据
+     * pre_tesk: Array 前置链上所有id
+     */
+    terseTargetLinkLoopback(item, pre_tesk = []){
+      /* pre_tesk.push(item.form[this.selfProps.id]);
+      if() */
     },
     // 简洁处理数据
     terseHandleData(data, parent = null, level = 0) {
@@ -1139,6 +1183,44 @@ export default {
         // 处理前置任务
         this.handlePreTask(i);
       });
+    },
+    // 处理前置依赖库
+    handleDependentStore() {
+      this.self_dependent_store = [];
+      // 多选前置模式
+      if (this.preMultiple) {
+        for (let i of this.self_data_list) {
+          let _pre = i[this.selfProps.pre];
+          if (!_pre || !Array.isArray(_pre) || _pre.length === 0) continue;
+          _pre.forEach(t => {
+            let _pre_target = this.self_data_list.find(
+              e => e[this.selfProps.id] === t
+            );
+            if (_pre_target) {
+              this.self_dependent_store.push({
+                form: i,
+                to: _pre_target
+              });
+            }
+          });
+        }
+      } else { // 单选前置模式
+        for (let i of this.self_data_list) {
+          if (!i[this.selfProps.pre]) continue;
+          let _pre_target = this.self_data_list.find(
+            e => e[this.selfProps.id] === i[this.selfProps.pre]
+          );
+          if (!_pre_target) continue;
+          this.self_dependent_store.push({
+            form: i,
+            to: _pre_target
+          });
+        }
+      }
+      // 处理合格前置任务
+      this.self_dependent_store.forEach(i => {
+        this.terseTargetLinkLoopback(i);
+      })
     },
     // el-table事件----------------------------------------------以下为原el-table事件输出------------------------------------------------
     handleSelectionChange(val) {
