@@ -226,7 +226,8 @@ export default {
       self_dependent_store: [], // 自身依赖库
       multipleSelection: [], // 多选数据
       currentRow: null, // 单选数据
-      pre_options: [] // 可选前置节点
+      pre_options: [], // 可选前置节点
+      update: true, // 更新视图
     };
   },
   props: {
@@ -398,7 +399,6 @@ export default {
     },
     // 数据
     selfData() {
-      console.log(0)
       let _data = this.data || [];
       // 生成一维数据
       this.self_data_list = flattenDeep(_data, this.selfProps.children);
@@ -515,12 +515,9 @@ export default {
       let _children = row._all_children.map(i => i._identityId); // 子孙节点不可选
       let _self = row[this.selfProps.id]; // 自己不可选
       let _parents_and_children = _children.concat(_parents);
-      console.log(_parents_and_children)
       let filter_options = this.self_data_list.filter(
         i => !_parents_and_children.includes(i._identityId)
       );
-      console.log(filter_options)
-
       this.pre_options = this.preMultiple // 前置任务是自己的不可选
         ? filter_options.filter(
             i => !i[this.selfProps.pre].includes(row[this.selfProps.id])
@@ -897,7 +894,6 @@ export default {
     },
     // 处理外部数据 ---------------------------------------------------------------原始数据处理-------------------------------------
     handleData(data, parent = null, level = 0) {
-      console.log(3)
       level++;
       data.forEach(i => {
         this.$set(i, "_parent", parent); // 添加父级字段
@@ -927,7 +923,7 @@ export default {
         // 添加自增id字段及树链组成的parents字段
         this.recordIdentityIdAndParents(i);
         // 处理前置任务
-        this.handlePreTask(i);
+        // this.handlePreTask(i);
         // 如果当前节点的开始时间早于父节点的开始时间，则将开始时间与父节点相同
         this.parentStartDateToChild(i);
         // 校验结束时间是否晚于子节点，如不则将节点结束时间改为最晚子节点
@@ -979,7 +975,6 @@ export default {
         true
       ); // 取子节点中最晚的结束时间
       let _parent_end = dayjs(item[this.selfProps.endDate]).valueOf();
-      console.log(item,22,_child_max,_parent_end)
       if (_child_max > _parent_end) {
         // 如果子节点结束时间比父节点晚，则将父节点结束时间退后
         this.$set(item, this.selfProps.endDate, this.timeFormat(_child_max));
@@ -988,15 +983,15 @@ export default {
     },
     // 处理前置任务节点    /// ---- 此使前置任务校验处理还没开始，因此出错，前置处理后手动调用vue视图更新试试
     handlePreTask(item) {
-      // 找到前置任务
-      /* let _pre_target = this.self_dependent_store.find(
+      // 统一在一维化数据中处理前置任务
+      let _pre_target = this.self_dependent_store.find(
         i => i.form[this.selfProps.id] === item[this.selfProps.id]
       );
-      console.log(_pre_target,9)
       if (!_pre_target) return;
       let _pre_end_date = this.preMultiple
         ? getMax(_pre_target.to, this.selfProps.endDate, true) // 取前置点中最晚的结束时间
-        : _pre_target.to[this.selfProps.endDate]; */
+        : _pre_target.to[this.selfProps.endDate];
+      /* 在数据循环中处理前置
       let pres = item[this.selfProps.pre];
       if(!pres) return;
       let _pre_target = null, _pre_end_date = null;
@@ -1008,20 +1003,18 @@ export default {
         _pre_target = this.self_data_list.find(i => i[this.selfProps.id] === pres);
         if(!_pre_target) return;
         _pre_end_date = _pre_target[this.selfProps.endDate]
-      }
+      } */
       // 查看是否需要根据前置时间，如果不符合规则，更新后置时间
       let _start_early_prvend = this.timeIsBefore(
         item[this.selfProps.startDate],
         _pre_end_date
       );
-      console.log(item.name,_pre_target)
       if (_start_early_prvend) {
         let _cycle = item._cycle - 1;
         let _to_startDate = this.timeAdd(_pre_end_date, 1);
         let _to_endDate = this.timeAdd(_to_startDate, _cycle);
         this.$set(item, this.selfProps.startDate, _to_startDate);
         this.$set(item, this.selfProps.endDate, _to_endDate);
-        console.log(item.name, item.startDate,item.endDate)
       }
     },
     /**
@@ -1251,7 +1244,6 @@ export default {
     },
     // 生成前置依赖库, 校验前置合法性并剔除不合法数据
     handleDependentStore() {
-      console.log(1)
       this.self_dependent_store = [];
       // 多选前置模式
       if (this.preMultiple) {
@@ -1315,11 +1307,14 @@ export default {
         this.terseTargetLinkLoopback(i);
       });
       // 处理前置依赖
-      /* this.self_data_list.forEach(i => {
+      this.self_data_list.forEach(i => {
         this.handlePreTask(i);
-      }); */
-      console.log(2)
-
+      });
+      // 暂时强制更新视图
+      if(this.update){
+        this.update = false;
+        this.selfData.sort()
+      }
     },
     // el-table事件----------------------------------------------以下为原el-table事件输出------------------------------------------------
     handleSelectionChange(val) {
