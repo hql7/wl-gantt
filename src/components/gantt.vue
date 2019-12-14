@@ -117,9 +117,10 @@
       :prop="selfProps.endDate"
     >
       <template slot-scope="scope">
+        <!-- @blur="self_cell_edit = null" @blur="preEditBlur" -->
         <el-select
           v-if="self_cell_edit === '_p_t_' + scope.$index"
-          @blur="self_cell_edit = null"
+          @change="preChange"
           v-model="scope.row[selfProps.pre]"
           collapse-tags
           :multiple="preMultiple"
@@ -227,7 +228,7 @@ export default {
       multipleSelection: [], // 多选数据
       currentRow: null, // 单选数据
       pre_options: [], // 可选前置节点
-      update: true, // 更新视图
+      update: true // 更新视图
     };
   },
   props: {
@@ -485,6 +486,29 @@ export default {
       } */
     },
     /**
+     * 前置任务改变
+     * row: object 当前行数据
+     */
+    preChange(row) {
+      this.emitTimeChange(row);
+      this.self_cell_edit = null;
+      // 如果开始晚于结束，提示
+      /* if (
+        this.timeIsBefore(
+          row[this.selfProps.endDate],
+          row[this.selfProps.startDate]
+        )
+      ) {
+        row[this.selfProps.startDate] = row._oldStartDate;
+        this.$message({
+          showClose: true,
+          message: "开始时间不可以晚于结束时间",
+          type: "error"
+        });
+        return;
+      } */
+    },
+    /**
      * 前置任务内容格式化函数
      * data：[String, Array] 前置任务
      */
@@ -507,27 +531,58 @@ export default {
       let _act = this.self_data_list.find(t => t[this.selfProps.id] === data);
       return _act ? _act[this.selfProps.name] : this.emptyCellText;
     },
+    // 前置下拉框失去焦点事件，change会触发blur，如果不延时则chang失效，如果延时则也只是延迟触发，会造成选一次就关闭无法多选
+    /* preEditBlur(){
+      setTimeout(()=>{
+        this.self_cell_edit = null
+      },500)
+    }, */
     /**
      * 前置任务编辑
      */
     preCellEdit(row, key, ref) {
-      let _parents = row._parents.split(","); // 父祖节点不可选
+      /* let _parents = row._parents.split(","); // 父祖节点不可选
       let _children = row._all_children.map(i => i._identityId); // 子孙节点不可选
       let _self = row[this.selfProps.id]; // 自己不可选
-      let _parents_and_children = _children.concat(_parents);
+      let _parents_and_children = _children.concat(_parents, [_self]);
       let filter_options = this.self_data_list.filter(
-        i => !_parents_and_children.includes(i._identityId)
+        i => !_parents_and_children.some(t => t == i._identityId)
       );
-      this.pre_options = this.preMultiple // 前置任务是自己的不可选
-        ? filter_options.filter(
-            i => !i[this.selfProps.pre].includes(row[this.selfProps.id])
-          )
-        : filter_options.filter(
-            i => i[this.selfProps.pre] !== row[this.selfProps.id]
-          );
-          this.pre_options =  this.self_data_list;
+      this.pre_options = filter_options; */
+      this.pre_options = [];
+      this.self_data_list.forEach(i => {
+        if(i[this.selfProps.id]!== row[this.selfProps.id]){
+          this.pre_options.push({...i, [this.selfProps.children]: null})
+        }
+      })
+      // 再剔除所有前置链涉及到的节点
+      this.deepFindToSelf(row);
       // 调用单元格编辑
       this.cellEdit(key, ref);
+    },
+    /**
+     * 找出to为当前元素的form，并将form作为to继续查找
+     * item: Object 当前元素
+     * targets: Array 需要过滤的数据(废弃)
+     */
+    deepFindToSelf(item) {
+      let _parents = item._parents.split(","); // 父祖节点不可选
+      let _children = item._all_children.map(i => i._identityId); // 子孙节点不可选
+      let _parents_and_children = _children.concat(_parents);
+      this.pre_options = this.pre_options.filter(
+        i => !_parents_and_children.some(t => t == i._identityId)
+      );
+      this.self_dependent_store.forEach(i => {
+        let _tag = this.preMultiple
+          ? i.to.some(t => t[this.selfProps.id] === item[this.selfProps.id])
+          : i.to[this.selfProps.id] === item[this.selfProps.id];
+        if (_tag) {
+          this.pre_options = this.pre_options.filter(
+            t => t[this.selfProps.id] !== i.form[this.selfProps.id]
+          );
+          this.deepFindToSelf(i.form);
+        }
+      });
     },
     /**
      * 单元格编辑
@@ -1311,9 +1366,9 @@ export default {
         this.handlePreTask(i);
       });
       // 暂时强制更新视图
-      if(this.update){
+      if (this.update) {
         this.update = false;
-        this.selfData.sort()
+        this.selfData.sort();
       }
     },
     // el-table事件----------------------------------------------以下为原el-table事件输出------------------------------------------------
