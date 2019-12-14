@@ -60,10 +60,10 @@
     >
       <template slot-scope="scope">
         <el-date-picker
-          v-if="scope.row._start_edit"
+          v-if="self_cell_edit === '_s_d_' + scope.$index"
           v-model="scope.row[selfProps.startDate]"
-          @blur="scope.row._start_edit = false"
           @change="startDateChange(scope.row)"
+          @blur="self_cell_edit = null"
           type="date"
           size="medium"
           class="u-full"
@@ -72,10 +72,11 @@
           value-format="yyyy-MM-dd"
           placeholder="请选择开始日期"
         ></el-date-picker>
-        <span
+        <div
           v-else
-          @click="cellEdit(scope.row, '_start_edit', 'wl-start-date')"
-        >{{timeFormat(scope.row[selfProps.startDate])}}</span>
+          class="h-full"
+          @click="cellEdit( '_s_d_' + scope.$index, 'wl-start-date')"
+        >{{timeFormat(scope.row[selfProps.startDate])}}</div>
       </template>
     </el-table-column>
     <el-table-column
@@ -88,10 +89,10 @@
     >
       <template slot-scope="scope">
         <el-date-picker
-          v-if="scope.row._end_edit"
+          v-if="self_cell_edit === '_e_d_' + scope.$index"
           v-model="scope.row[selfProps.endDate]"
-          @blur="scope.row._end_edit = false"
           @change="endDateChange(scope.row)"
+          @blur="self_cell_edit = null"
           type="date"
           size="medium"
           class="u-full"
@@ -100,10 +101,44 @@
           value-format="yyyy-MM-dd"
           placeholder="请选择结束日期"
         ></el-date-picker>
-        <span
+        <div
           v-else
-          @click="cellEdit(scope.row, '_end_edit', 'wl-end-date')"
-        >{{timeFormat(scope.row[selfProps.endDate])}}</span>
+          class="h-full"
+          @click="cellEdit('_e_d_' + scope.$index, 'wl-end-date')"
+        >{{timeFormat(scope.row[selfProps.endDate])}}</div>
+      </template>
+    </el-table-column>
+    <el-table-column
+      v-if="usePreColumn"
+      align="center"
+      min-width="140"
+      label="前置任务"
+      show-overflow-tooltip
+      :prop="selfProps.endDate"
+    >
+      <template slot-scope="scope">
+        <!-- @blur="self_cell_edit = null" @blur="preEditBlur" -->
+        <el-select
+          v-if="self_cell_edit === '_p_t_' + scope.$index"
+          @change="preChange"
+          v-model="scope.row[selfProps.pre]"
+          collapse-tags
+          :multiple="preMultiple"
+          ref="wl-pre-select"
+          placeholder="请选择前置任务"
+        >
+          <el-option
+            v-for="item in pre_options"
+            :key="item[selfProps.id]"
+            :label="item[selfProps.name]"
+            :value="item[selfProps.id]"
+          ></el-option>
+        </el-select>
+        <div
+          v-else
+          class="h-full"
+          @click="preCellEdit(scope.row, '_p_t_' + scope.$index, 'wl-pre-select')"
+        >{{preFormat(scope.row)}}</div>
       </template>
     </el-table-column>
     <slot></slot>
@@ -188,8 +223,12 @@ export default {
       self_data_list: [], // 一维化后的gantt数据
       self_date_type: "", // 自身日期类型
       self_id: 1, // 自增id
+      self_cell_edit: null, // 正在编辑的单元格
+      self_dependent_store: [], // 自身依赖库
       multipleSelection: [], // 多选数据
-      currentRow: null // 单选数据
+      currentRow: null, // 单选数据
+      pre_options: [], // 可选前置节点
+      update: true // 更新视图
     };
   },
   props: {
@@ -241,6 +280,22 @@ export default {
       default: true
     },
     nameFormatter: Function, // 名称列的格式化内容函数
+    // 是否使用内置前置任务列
+    usePreColumn: {
+      type: Boolean,
+      default: true
+    },
+    // 是否开启前置任务多选 如果开启多选则pre字段必须是Array，否则可以是Number\String
+    preMultiple: {
+      type: Boolean,
+      default: true
+    },
+    preFormatter: Function, // 前置任务列的格式化内容函数
+    // 空单元格占位符
+    emptyCellText: {
+      type: String,
+      default: "-"
+    },
     // ---------------------------------------------以下为el-table Attributes--------------------------------------------
     defaultExpandAll: {
       type: Boolean,
@@ -346,8 +401,12 @@ export default {
     // 数据
     selfData() {
       let _data = this.data || [];
+      // 生成一维数据
       this.self_data_list = flattenDeep(_data, this.selfProps.children);
+      // 处理源数据合法性
       this.handleData(_data);
+      // 处理前置依赖
+      this.handleDependentStore();
       return _data;
     },
     // 树表配置项
@@ -427,29 +486,114 @@ export default {
       } */
     },
     /**
-     * 单元格编辑
+     * 前置任务改变
      * row: object 当前行数据
-     * key: string 需要操作的字段
-     * ref：object 需要获取焦点的dom
      */
-    cellEdit(row, key, ref) {
-      row[key] = true;
-      this.$nextTick(() => {
-        this.$refs[ref].focus();
+    preChange(row) {
+      this.emitTimeChange(row);
+      this.self_cell_edit = null;
+      // 如果开始晚于结束，提示
+      /* if (
+        this.timeIsBefore(
+          row[this.selfProps.endDate],
+          row[this.selfProps.startDate]
+        )
+      ) {
+        row[this.selfProps.startDate] = row._oldStartDate;
+        this.$message({
+          showClose: true,
+          message: "开始时间不可以晚于结束时间",
+          type: "error"
+        });
+        return;
+      } */
+    },
+    /**
+     * 前置任务内容格式化函数
+     * data：[String, Array] 前置任务
+     */
+    preFormat(row) {
+      // 自定义格式化前置任务列函数
+      if (this.preFormatter) {
+        return this.preFormatter(row);
+      }
+      let data = row[this.selfProps.pre];
+      if (!data) return this.emptyCellText;
+      if (Array.isArray(data)) {
+        if (data.length === 0) return this.emptyCellText;
+        let _pre_text = "";
+        data.forEach(i => {
+          let _act = this.self_data_list.find(t => t[this.selfProps.id] === i);
+          if (_act) _pre_text += `${_act[this.selfProps.name]},`;
+        });
+        return _pre_text;
+      }
+      let _act = this.self_data_list.find(t => t[this.selfProps.id] === data);
+      return _act ? _act[this.selfProps.name] : this.emptyCellText;
+    },
+    // 前置下拉框失去焦点事件，change会触发blur，如果不延时则chang失效，如果延时则也只是延迟触发，会造成选一次就关闭无法多选
+    /* preEditBlur(){
+      setTimeout(()=>{
+        this.self_cell_edit = null
+      },500)
+    }, */
+    /**
+     * 前置任务编辑
+     */
+    preCellEdit(row, key, ref) {
+      /* let _parents = row._parents.split(","); // 父祖节点不可选
+      let _children = row._all_children.map(i => i._identityId); // 子孙节点不可选
+      let _self = row[this.selfProps.id]; // 自己不可选
+      let _parents_and_children = _children.concat(_parents, [_self]);
+      let filter_options = this.self_data_list.filter(
+        i => !_parents_and_children.some(t => t == i._identityId)
+      );
+      this.pre_options = filter_options; */
+      this.pre_options = [];
+      this.self_data_list.forEach(i => {
+        if(i[this.selfProps.id]!== row[this.selfProps.id]){
+          this.pre_options.push({...i, [this.selfProps.children]: null})
+        }
+      })
+      // 再剔除所有前置链涉及到的节点
+      this.deepFindToSelf(row);
+      // 调用单元格编辑
+      this.cellEdit(key, ref);
+    },
+    /**
+     * 找出to为当前元素的form，并将form作为to继续查找
+     * item: Object 当前元素
+     * targets: Array 需要过滤的数据(废弃)
+     */
+    deepFindToSelf(item) {
+      let _parents = item._parents.split(","); // 父祖节点不可选
+      let _children = item._all_children.map(i => i._identityId); // 子孙节点不可选
+      let _parents_and_children = _children.concat(_parents);
+      this.pre_options = this.pre_options.filter(
+        i => !_parents_and_children.some(t => t == i._identityId)
+      );
+      this.self_dependent_store.forEach(i => {
+        let _tag = this.preMultiple
+          ? i.to.some(t => t[this.selfProps.id] === item[this.selfProps.id])
+          : i.to[this.selfProps.id] === item[this.selfProps.id];
+        if (_tag) {
+          this.pre_options = this.pre_options.filter(
+            t => t[this.selfProps.id] !== i.form[this.selfProps.id]
+          );
+          this.deepFindToSelf(i.form);
+        }
       });
     },
     /**
-     * 查询目标是否在父级链或者全部子集中
-     * item 当前节点
-     * pre 前置节点
+     * 单元格编辑
+     * key: string 需要操作的单元格key
+     * ref：object 需要获取焦点的dom
      */
-    targetInParentsOrChildren(item, pre) {
-      let _parents = item._parents.split(",");
-      let _children = item._all_children.map(i => i._identityId);
-      return _children.concat(_parents).some(i => i == pre._identityId);
-      /* let _parents = item[this.selfProps.parents].split(",").filter(i => !!i);
-      let _children = item._all_children.map(i => i[this.selfProps.identityId]);
-      return _children.push(..._parents).some(i => i == item[this.selfProps.pre]); */
+    cellEdit(key, ref) {
+      this.self_cell_edit = key;
+      this.$nextTick(() => {
+        this.$refs[ref].focus();
+      });
     },
     // 以下是表格-日期-gantt生成函数----------------------------------------生成gantt表格-------------------------------------
     /**
@@ -777,7 +921,7 @@ export default {
      * format 格式化的格式
      */
     timeFormat(date, format = "YYYY-MM-DD") {
-      return dayjs(date).format(format);
+      return date ? dayjs(date).format(format) : this.emptyCellText;
     },
     /**
      * 查询时间是周几
@@ -786,12 +930,22 @@ export default {
       return dayjs(date).day();
     },
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
+    // 任务时间更改
     emitTimeChange(item) {
       this.$emit("timeChange", item);
       this.$nextTick(() => {
         this.$set(item, "_oldStartDate", item[this.selfProps.startDate]);
         this.$set(item, "_oldEndDate", item[this.selfProps.endDate]);
       });
+    },
+    /**
+     * 前置任务更改
+     * item: Object 发生更改的行数据
+     * oldval: [String, Array] 修改前数据
+     * handle: Boolean true为操作选择框修改 false为源数据不符合规范的修正更改
+     */
+    emitPreChange(item, oldval, handle = false) {
+      this.$emit("preChange", item, oldval, handle);
     },
     // 处理外部数据 ---------------------------------------------------------------原始数据处理-------------------------------------
     handleData(data, parent = null, level = 0) {
@@ -821,12 +975,14 @@ export default {
           );
           this.$set(i, "_cycle", _time_diff + 1); // 添加工期字段
         } // 添加工期字段
+        // 添加自增id字段及树链组成的parents字段
+        this.recordIdentityIdAndParents(i);
+        // 处理前置任务
+        // this.handlePreTask(i);
         // 如果当前节点的开始时间早于父节点的开始时间，则将开始时间与父节点相同
         this.parentStartDateToChild(i);
         // 校验结束时间是否晚于子节点，如不则将节点结束时间改为最晚子节点
         this.childEndDateToParent(i);
-        // 添加自增id字段及树链组成的parents字段
-        this.recordIdentityIdAndParents(i);
         if (Array.isArray(i[this.selfProps.children])) {
           this.$set(i, "_isLeaf", false); // 添加是否叶子节点字段
           let _all_children = flattenDeep(
@@ -838,13 +994,6 @@ export default {
         } else {
           this.$set(i, "_isLeaf", true); // 添加是否叶子节点字段
           this.$set(i, "_all_children", []); // 添加全部子节点字段
-        }
-        // 处理前置任务
-        this.handlePreTask(i);
-        if (!i.hasOwnProperty("_start_edit")) {
-          // 添加编辑字段管理可编辑项的显示
-          this.$set(i, "_start_edit", false);
-          this.$set(i, "_end_edit", false);
         }
       });
     },
@@ -887,31 +1036,113 @@ export default {
         this.emitTimeChange(item); // 将发生时间更新的数据输出
       }
     },
-    // 处理前置任务节点
+    // 处理前置任务节点    /// ---- 此使前置任务校验处理还没开始，因此出错，前置处理后手动调用vue视图更新试试
     handlePreTask(item) {
-      if (!item[this.selfProps.pre]) return;
-      // 找到前置目标节点
-      let _pre_target = this.self_data_list.find(
-        i => i[this.selfProps.id] == item[this.selfProps.pre]
+      // 统一在一维化数据中处理前置任务
+      let _pre_target = this.self_dependent_store.find(
+        i => i.form[this.selfProps.id] === item[this.selfProps.id]
       );
       if (!_pre_target) return;
-      let is_pre_standard = this.targetInParentsOrChildren(item, _pre_target);
-      if (is_pre_standard) return;
+      let _pre_end_date = this.preMultiple
+        ? getMax(_pre_target.to, this.selfProps.endDate, true) // 取前置点中最晚的结束时间
+        : _pre_target.to[this.selfProps.endDate];
+      /* 在数据循环中处理前置
+      let pres = item[this.selfProps.pre];
+      if(!pres) return;
+      let _pre_target = null, _pre_end_date = null;
+      if(this.preMultiple){
+        if(!Array.isArray(pres) || pres.length ===0) return;
+        _pre_target = this.self_data_list.filter(i => pres.includes(i[this.selfProps.id]));
+        _pre_end_date = getMax(_pre_target, this.selfProps.endDate, true);
+      }else{
+        _pre_target = this.self_data_list.find(i => i[this.selfProps.id] === pres);
+        if(!_pre_target) return;
+        _pre_end_date = _pre_target[this.selfProps.endDate]
+      } */
       // 查看是否需要根据前置时间，如果不符合规则，更新后置时间
       let _start_early_prvend = this.timeIsBefore(
         item[this.selfProps.startDate],
-        _pre_target[this.selfProps.endDate]
+        _pre_end_date
       );
       if (_start_early_prvend) {
         let _cycle = item._cycle - 1;
-        let _to_startDate = this.timeAdd(
-          _pre_target[this.selfProps.endDate],
-          1
-        );
+        let _to_startDate = this.timeAdd(_pre_end_date, 1);
         let _to_endDate = this.timeAdd(_to_startDate, _cycle);
         this.$set(item, this.selfProps.startDate, _to_startDate);
         this.$set(item, this.selfProps.endDate, _to_endDate);
       }
+    },
+    /**
+     * 检查前置任务合法性
+     * ！！已废弃：改为从一维数据列收集form、to并校验，不再在递归中检查 -> handleDependentStore
+     */
+    checkPreTaskValidity(item) {
+      // 没有前置任务退出
+      if (!item[this.selfProps.pre]) return false;
+      // 多前置任务模式
+      if (this.preMultiple) {
+        let _pres = item[this.selfProps.pre];
+        // 不是数组退出
+        if (!Array.isArray(_pres)) {
+          this.emitPreChange(item, item[this.selfProps.pre]);
+          this.$set(item, this.selfProps.pre, []);
+          return false;
+        }
+        // 数组为空退出
+        if (_pres.length === 0) return false;
+        // 前置任务有自己时，剔除自己
+        let _net_self_pres = _pres.filter(i => i !== item[this.selfProps.id]);
+        if (_net_self_pres.length !== _pres.length) {
+          this.emitPreChange(item, item[this.selfProps.pre]);
+          this.$set(item, this.selfProps.pre, _net_self_pres);
+        }
+        // 剔除前置任务找不到目标数据的元素
+        let _pre_exist = _net_self_pres.filter(i => this.targetInAllData(i));
+        if (_pre_exist.length !== _net_self_pres.length) {
+          this.emitPreChange(item, item[this.selfProps.pre]);
+          this.$set(item, this.selfProps.pre, _pre_exist);
+        }
+        let _no_par_chi = []; // 声明非父、祖、子、孙节点的盒子
+        for (let i of _pre_exist) {
+          let _pre_target = this.self_data_list.find(
+            t => t[this.selfProps.id] === i
+          );
+          if (!_pre_target) continue;
+          let _pre_par_chi = this.targetInParentsOrChildren(item, _pre_target);
+          _pre_par_chi || _no_par_chi.push(i);
+        }
+        // 前置任务是自己的父祖或子孙节点, 剔除此前置
+        if (_no_par_chi.length !== _pre_exist.length) {
+          this.emitPreChange(item, item[this.selfProps.pre]);
+          this.$set(item, this.selfProps.pre, _no_par_chi);
+        }
+        // 处理前置任务链链中产生了回环【A->B,B->C,C->D,D->B】即前置链中形成了相互前置的节点，剔除其错误前置数据
+        this.targetLinkLoopback(item);
+        return true;
+      }
+      // 单前置任务模式
+      if (item[this.selfProps.pre] === item[this.selfProps.id]) {
+        this.$set(item, this.selfProps.pre, null);
+        return false;
+      } // 前置任务是自己退出
+      // 找到前置目标节点
+      let _pre_target = this.self_data_list.find(
+        i => i[this.selfProps.id] == item[this.selfProps.pre]
+      );
+      // 没找到前置任务节点数据退出
+      if (!_pre_target) {
+        this.$set(item, this.selfProps.pre, null);
+        return false;
+      }
+      // 前置任务是自己的父祖或子孙节点退出
+      let is_pre_standard = this.targetInParentsOrChildren(item, _pre_target);
+      if (is_pre_standard) {
+        this.$set(item, this.selfProps.pre, null);
+        return false;
+      }
+      // 处理前置任务链链中产生了回环【A->B,B->C,C->D,D->B】即前置链中形成了相互前置的节点，剔除其错误前置数据
+      this.targetLinkLoopback(item);
+      return true;
     },
     // 处理数据生成自增id和树链parents
     recordIdentityIdAndParents(item) {
@@ -932,6 +1163,103 @@ export default {
         ? item._parent._parents + "," + item._parent._identityId
         : "";
       this.$set(item, "_parents", _parents);
+    },
+    /**
+     * 查询目标是否在父级链或者全部子集中
+     * item 当前节点
+     * pre 前置节点
+     */
+    targetInParentsOrChildren(item, pre) {
+      let _parents = item._parents.split(",");
+      let _children = item._all_children.map(i => i._identityId);
+      return _children.concat(_parents).some(i => i == pre._identityId);
+    },
+    // 查询目标节点是否在数据中存在,并返回数据
+    targetInAllData(target_id) {
+      return this.self_data_list.find(i => i[this.selfProps.id] === target_id);
+    },
+    /**
+     * 处理前置任务链链中产生了回环【A->B,B->C,C->D,D->B】即前置链中形成了相互前置的节点，剔除其错误前置数据
+     * item: Object 当前节点数据
+     * pre_tesk: Array 前置链上所有id
+     * ！！已废弃：下方尝试改成form to结构收集起来处理，不再循环中反复循环处理 -> terseTargetLinkLoopback
+     */
+    targetLinkLoopback(item, pre_tesk = []) {
+      pre_tesk.push(item[this.selfProps.id]);
+      let _pres = item[this.selfProps.pre];
+      if (this.preMultiple) {
+        let _legal_pres = _pres.filter(i => !pre_tesk.includes(i));
+        if (_legal_pres.length !== _pres.length) {
+          this.emitPreChange(item, item[this.selfProps.pre]);
+          this.$set(item, this.selfProps.pre, _no_par_chi);
+        }
+        _legal_pres.forEach(i => {
+          let _pre_target = this.self_data_list.find(
+            t => t[this.selfProps.id] === i
+          );
+          if (
+            _pre_target &&
+            Array.isArray(_pre_target[this.selfProps.pre]) &&
+            _pre_target[this.selfProps.pre].length > 0
+          ) {
+            this.targetLinkLoopback(_pre_target, pre_tesk);
+          }
+        });
+      } else {
+        if (pre_tesk.includes(_pres)) {
+          this.emitPreChange(item, item[this.selfProps.pre]);
+          this.$set(item, this.selfProps.pre, _no_par_chi);
+        }
+        let _pre_target = this.self_data_list.find(
+          t => t[this.selfProps.id] === i
+        );
+        if (_pre_target) {
+          this.targetLinkLoopback(_pre_target, pre_tesk);
+        }
+      }
+    },
+    /**
+     * 处理前置任务链链中产生了回环【A->B,B->C,C->D,D->B】即前置链中形成了相互前置的节点，剔除其错误前置数据
+     * item: Object 当前节点数据
+     * flow_pre_tesk: Array 前置链上所有id
+     */
+    terseTargetLinkLoopback(item, flow_pre_tesk = []) {
+      flow_pre_tesk.push(item.form[this.selfProps.id]);
+      if (this.preMultiple) {
+        let _legal_pre = [], // 收集合法数据
+          _next_form = []; // 收集所有前置的前置
+        for (let i of item.to) {
+          let _to_id = i[this.selfProps.id];
+          if (flow_pre_tesk.includes(_to_id)) continue;
+          _legal_pre.push(_to_id);
+          flow_pre_tesk.push(_to_id);
+          let _store_next_form = this.self_dependent_store.filter(
+            t => t.form[this.selfProps.id] === _to_id
+          );
+          _next_form = _next_form.concat(_store_next_form);
+        }
+        // 剔除不合法前置
+        if (_legal_pre.length !== item.to.length) {
+          this.emitPreChange(item.form, item.form[this.selfProps.pre]);
+          this.$set(item.form, this.selfProps.pre, _legal_pre);
+        }
+        // 向前置的前置递归
+        _next_form.forEach(t => {
+          this.terseTargetLinkLoopback(t, flow_pre_tesk);
+        });
+      } else {
+        let _to_id = item.to[this.selfProps.id];
+        if (flow_pre_tesk.includes(_to_id)) {
+          this.emitPreChange(item.form, item.form[this.selfProps.pre]);
+          this.$set(item.form, this.selfProps.pre, null);
+          return;
+        }
+        let _next_form = this.self_dependent_store.find(
+          t => t.form[this.selfProps.id] === _to_id
+        );
+        if (!_next_form) return;
+        this.terseTargetLinkLoopback(_next_form, flow_pre_tesk);
+      }
     },
     // 简洁处理数据
     terseHandleData(data, parent = null, level = 0) {
@@ -966,13 +1294,82 @@ export default {
           this.$set(i, "_isLeaf", true); // 添加是否叶子节点字段
         }
         // 处理前置任务
-        this.handlePreTask(i);
-        if (!i.hasOwnProperty("_start_edit")) {
-          // 添加编辑字段管理可编辑项的显示
-          this.$set(i, "_start_edit", false);
-          this.$set(i, "_end_edit", false);
-        }
+        // this.handlePreTask(i);
       });
+    },
+    // 生成前置依赖库, 校验前置合法性并剔除不合法数据
+    handleDependentStore() {
+      this.self_dependent_store = [];
+      // 多选前置模式
+      if (this.preMultiple) {
+        for (let i of this.self_data_list) {
+          let _pres = i[this.selfProps.pre];
+          if (!_pres) continue;
+          // 不是数组退出
+          if (!Array.isArray(_pres)) {
+            this.emitPreChange(i, i[this.selfProps.pre]);
+            this.$set(i, this.selfProps.pre, []);
+            continue;
+          }
+          // 数组为空退出
+          if (_pres.length === 0) continue;
+          // 查询不到数据的不收集，是父、祖、子、孙节点的不收集
+          let _pre_exist_node = [],
+            _pre_exist_id = [];
+          for (let t of _pres) {
+            let target_node = this.targetInAllData(t);
+            if (!target_node) continue; // 查询不到数据的不收集
+            let in_per_chi = this.targetInParentsOrChildren(i, target_node);
+            if (in_per_chi) continue; // 是父、祖、子、孙节点的不收集
+            _pre_exist_node.push(target_node);
+            _pre_exist_id.push(target_node[this.selfProps.id]);
+          }
+          if (_pre_exist_node.length !== _pres.length) {
+            this.emitPreChange(i, i[this.selfProps.pre]);
+            this.$set(i, this.selfProps.pre, _pre_exist_id);
+          }
+          this.self_dependent_store.push({
+            form: i,
+            to: _pre_exist_node
+          });
+        }
+      } else {
+        // 单选前置模式
+        for (let i of this.self_data_list) {
+          if (!i[this.selfProps.pre]) continue;
+          let _pre_target = this.targetInAllData(i[this.selfProps.pre]);
+          // 处理前置任务找不到的情况
+          if (!_pre_target) {
+            this.emitPreChange(i, i[this.selfProps.pre]);
+            this.$set(i, this.selfProps.pre, null);
+            continue;
+          }
+          // 处理前置任务是父祖子孙节点的情况
+          let in_per_chi = this.targetInParentsOrChildren(i, _pre_target);
+          if (in_per_chi) {
+            this.emitPreChange(i, i[this.selfProps.pre]);
+            this.$set(i, this.selfProps.pre, null);
+            continue;
+          }
+          this.self_dependent_store.push({
+            form: i,
+            to: _pre_target
+          });
+        }
+      }
+      // 处理合格前置任务
+      this.self_dependent_store.forEach(i => {
+        this.terseTargetLinkLoopback(i);
+      });
+      // 处理前置依赖
+      this.self_data_list.forEach(i => {
+        this.handlePreTask(i);
+      });
+      // 暂时强制更新视图
+      if (this.update) {
+        this.update = false;
+        this.selfData.sort();
+      }
     },
     // el-table事件----------------------------------------------以下为原el-table事件输出------------------------------------------------
     handleSelectionChange(val) {
@@ -1053,6 +1450,10 @@ $gantt_item_half: 8px;
 .wl-gantt {
   .wl-gantt-header > th {
     text-align: center;
+  }
+
+  .h-full {
+    height: 100%;
   }
 
   .wl-gantt-item {
