@@ -159,6 +159,7 @@
         >
           <template slot-scope="scope">
             <div :class="dayGanttType(scope.row, month.full_date, 'months')"></div>
+            <div v-if="useRealTime" :class="realDayGanttType(scope.row, month.full_date, 'months')"></div>
           </template>
         </el-table-column>
       </el-table-column>
@@ -180,6 +181,7 @@
         >
           <template slot-scope="scope">
             <div :class="dayGanttType(scope.row, t.full_date, 'week')"></div>
+            <div v-if="useRealTime" :class="realDayGanttType(scope.row, t.full_date, 'week')"></div>
           </template>
         </el-table-column>
       </el-table-column>
@@ -201,6 +203,7 @@
         >
           <template slot-scope="scope">
             <div :class="dayGanttType(scope.row, t.full_date)"></div>
+            <div v-if="useRealTime" :class="realDayGanttType(scope.row, t.full_date)"></div>
           </template>
         </el-table-column>
       </el-table-column>
@@ -255,6 +258,11 @@ export default {
     endDate: {
       type: [String, Object],
       required: true
+    },
+    // 是否使用实际开始时间、实际结束时间
+    useRealTime: {
+      type: Boolean,
+      default: false
     },
     // 是否检查源数据符合规则，默认开启，如果源数据已遵循project规则，可设置为false以提高性能
     checkSource: {
@@ -418,7 +426,9 @@ export default {
         id: "id", // id字段
         pid: "pid", // pid字段
         startDate: "startDate", // 开始时间字段
+        realStartDate: "realStartDate", // 实际开始时间字段
         endDate: "endDate", // 结束时间字段
+        realEndDate: "realEndDate", // 实际结束时间字段
         identityId: "identityId",
         parents: "parents",
         pre: "pre", // 前置任务字段【注意：如果使用recordParents，则pre值应是目标对象的identityId字段(可配置)】
@@ -551,10 +561,10 @@ export default {
       this.pre_options = filter_options; */
       this.pre_options = [];
       this.self_data_list.forEach(i => {
-        if(i[this.selfProps.id]!== row[this.selfProps.id]){
-          this.pre_options.push({...i, [this.selfProps.children]: null})
+        if (i[this.selfProps.id] !== row[this.selfProps.id]) {
+          this.pre_options.push({ ...i, [this.selfProps.children]: null });
         }
-      })
+      });
       // 再剔除所有前置链涉及到的节点
       this.deepFindToSelf(row);
       // 调用单元格编辑
@@ -883,6 +893,31 @@ export default {
       }
       if (end) {
         return "wl-item-on wl-item-end";
+      }
+    },
+    /**
+     * 实际日期gantt状态
+     * row: object 当前行信息
+     * date: string 当前格子日期
+     * unit: string 时间单位，以天、月、年计算
+     */
+    realDayGanttType(row, date, unit = "days") {
+      let start_date = row[this.selfProps.realStartDate];
+      let end_date = row[this.selfProps.realEndDate];
+      let between = dayjs(date).isBetween(start_date, end_date, unit);
+      if (between) {
+        return "wl-real-on";
+      }
+      let start = dayjs(start_date).isSame(date, unit);
+      let end = dayjs(end_date).isSame(date, unit);
+      if (start && end) {
+        return "wl-real-on wl-real-full";
+      }
+      if (start) {
+        return "wl-real-on wl-real-start";
+      }
+      if (end) {
+        return "wl-real-on wl-real-end";
       }
     },
     // 以下是时间计算类函数 ------------------------------------------------------时间计算---------------------------------------
@@ -1468,6 +1503,7 @@ $gantt_item_half: 8px;
     width: 100%;
   }
 
+  // 计划时间gantt开始
   .wl-item-on {
     position: absolute;
     top: 50%;
@@ -1539,6 +1575,80 @@ $gantt_item_half: 8px;
       border-style: solid;
     }
   }
+  // 计划时间gantt结束
+
+  // 实际时间gantt开始
+  .wl-real-on {
+    position: absolute;
+    top: 70%;
+    left: 0;
+    right: -1px;
+    margin-top: -$gantt_item_half;
+    height: $gantt_item;
+    background: #faa792; //rgba(250, 167, 146, .6);
+    transition: all 0.4s;
+  }
+  .wl-real-start {
+    left: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #faa792 transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-real-end {
+    right: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #faa792;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-real-full {
+    left: 0;
+    right: 0;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #faa792 transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #faa792;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+  // 实际时间gantt结束
 }
 
 .year-and-month {
