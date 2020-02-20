@@ -14,6 +14,7 @@
         @timeChange="timeChange"
         @preChange="preChange"
         @expand-change="expandChange"
+        @selection-change="selectionChange"
       >
       </wlGantt>
     </div>
@@ -154,7 +155,8 @@ export default {
           startDate: "2019-09-20",
           endDate: "2019-10-31"
         }
-      ]
+      ], // 数据
+      selected:[] // 选中数据
     };
   },
   methods: {
@@ -178,6 +180,10 @@ export default {
     // 数表展开行
     expandChange(row, expanded) {
       console.log("展开行:", row, expanded);
+    },
+    // 多选选择
+    selectionChange(val){
+      console.log('多选：', val)
     }
   },
   components: {

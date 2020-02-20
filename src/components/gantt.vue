@@ -218,7 +218,8 @@ import dayjs from "dayjs"; // 导入日期js
 const uuidv4 = require("uuid/v4"); // 导入uuid生成插件
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
-import { deepClone, flattenDeep, getMin, getMax } from "@/assets/array.js";
+import { deepClone, flattenDeep, getMin, getMax,flattenDeepParents, regDeepParents } from "@/util/array.js"; // 导入数组操作函数
+
 export default {
   name: "wlGantt",
   data() {
@@ -307,6 +308,11 @@ export default {
     },
     // 是否可编辑
     edit: {
+      type: Boolean,
+      default: true
+    },
+    // 复选框是否父子关联
+    parentChild:{
       type: Boolean,
       default: true
     },
@@ -1425,6 +1431,40 @@ export default {
         this.selfData.sort();
       }
     },
+    // 父子关联
+    tableSelect(val, row) {
+      if (!this.parentChild) return;
+      // 选中
+      if (val.some(item => item[this.selfProps.id] == row[this.selfProps.id])) {
+        // 父元素选中全选所有子孙元素
+        // for (let item of val) {
+          row._all_children.forEach(i => {
+            this.$refs["wl-gantt"].toggleRowSelection(i, true);
+          });
+        // }
+        // 子元素全选向上查找所有满足条件的祖先元素
+        regDeepParents(row, "_parent", parents => {
+          // console.log(parents, )
+          let reg =
+            parents &&
+            parents[this.selfProps.children].every(item => {
+              return val.some(
+                it => it[this.selfProps.id] == item[this.selfProps.id]
+              );
+            });
+          if (reg) this.$refs["wl-gantt"].toggleRowSelection(parents, true);
+        });
+      } else {
+        // 非选中将所有子孙元素及支线上祖先元素清除
+        let cancel_data = [
+          ...row._all_children,
+          ...flattenDeepParents([row], "_parent")
+        ];
+        for (let item of cancel_data) {
+          this.$refs["wl-gantt"].toggleRowSelection(item, false);
+        }
+      }
+    },
     // el-table事件----------------------------------------------以下为原el-table事件输出------------------------------------------------
     handleSelectionChange(val) {
       this.$emit("selection-change", val);
@@ -1435,9 +1475,14 @@ export default {
       this.currentRow = val;
     }, // 当表格的当前行发生变化的时候会触发该事件
     handleSelectAll(val) {
+      let is_check = val.length > 0;
+      this.self_data_list.forEach(i => {
+        this.$refs["wl-gantt"].toggleRowSelection(i, is_check);
+      })
       this.$emit("select-all", val);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleSelect(selection, row) {
+      this.tableSelect(selection, row);
       this.$emit("select", selection, row);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleMouseEnter(row, column, cell, event) {
