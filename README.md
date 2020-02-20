@@ -115,10 +115,13 @@
   | 8 | autoGanttDateType | 自动调整gantt时间跨度类型，具体规则见`版本记录1` | Boolean | - | true | - |
   | 9 | nameFormatter | 名称列格式化内容函数 | Function | - | - | Function(row, column, cellValue, index) |
   | 10 | 其他Table Attributes | [文档地址](https://element.eleme.cn/#/zh-CN/component/table) | - | - | - | - |
-  | 11 | usePreColumn | 是否使用内置前置任务列 | Boolean | - | true | - |
+  | 11 | usePreColumn | 是否使用内置前置任务列 | Boolean | - | false | - |
   | 12 | preMultiple | 前置任务是否可以多选 | Boolean | - | true | 如果开启多选则pre字段必须是Array，否则可以是Number\String | 
   | 13 | preFormatter | 前置内容列格式化函数 | Function | - | - | 如不传则根据`prop name字段+，`拼接 | 
   | 14 | emptyCellText | 空值单元格占位符 | String | - | '-' | - | 
+  | 15 | useCheckColumn | 是否使用内置复选框列 | Boolean | - | false | - |
+  | 16 | useIndexColumn | 是否使用内置序号列 | Boolean | - | false | - | 
+  | 17 | edit | 是否可编辑 | Boolean | - | true | - |
 
 ### props
 | 序号 | 参数 | 说明 | 默认值 |
@@ -148,6 +151,8 @@
   | 2 | - | 插入在默认列及甘特图之间的列 |
 
 ### 版本记录
+
+> 4. 1.0.1版本 增加内置复选框列、序号列；增加是否可编辑参数；修改内置前置任务列配置参数值为false；
 
 > 3. 1.0.0版本 增加内置前置任务列，支持多选前置和单选前置，并自动校验源数据前置任务合法性。
 

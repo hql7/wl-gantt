@@ -1,7 +1,8 @@
 <template>
+<div class="wl-gantt"> 
+  <!-- 主体图形部分 -->
   <el-table
     ref="wl-gantt"
-    class="wl-gantt"
     :fit="fit"
     :size="size"
     :border="border"
@@ -40,10 +41,8 @@
     @select-all="handleSelectAll"
     @row-click="handleRowClick"
     @select="handleSelect"
-  >
+    >
     <slot name="prv"></slot>
-    <el-table-column v-if="useCheckColumn" fixed type="selection" width="55" align="center"></el-table-column>
-    <el-table-column v-if="useIndexColumn" fixed type="index" width="50" label="#"></el-table-column>
     <el-table-column
       fixed
       label="名称"
@@ -55,13 +54,14 @@
     <el-table-column
       :resizable="false"
       fixed
-      width="160"
+      min-width="110"
       align="center"
       :prop="selfProps.startDate"
       label="开始日期"
-      >
+     >
       <template slot-scope="scope">
-        <el-date-picker
+        {{timeFormat(scope.row[selfProps.startDate])}}
+        <!-- <el-date-picker
           v-if="self_cell_edit === '_s_d_' + scope.$index"
           v-model="scope.row[selfProps.startDate]"
           @change="startDateChange(scope.row)"
@@ -78,19 +78,20 @@
           v-else
           class="h-full"
           @click="cellEdit( '_s_d_' + scope.$index, 'wl-start-date')"
-        >{{timeFormat(scope.row[selfProps.startDate])}}</div>
+        >{{timeFormat(scope.row[selfProps.startDate])}}</div> -->
       </template>
     </el-table-column>
     <el-table-column
       fixed
       :resizable="false"
-      width="160"
+      min-width="110"
       align="center"
       :prop="selfProps.endDate"
       label="结束日期"
       >
       <template slot-scope="scope">
-        <el-date-picker
+        {{timeFormat(scope.row[selfProps.endDate])}}
+        <!-- <el-date-picker
           v-if="self_cell_edit === '_e_d_' + scope.$index"
           v-model="scope.row[selfProps.endDate]"
           @change="endDateChange(scope.row)"
@@ -107,20 +108,21 @@
           v-else
           class="h-full"
           @click="cellEdit('_e_d_' + scope.$index, 'wl-end-date')"
-        >{{timeFormat(scope.row[selfProps.endDate])}}</div>
+        >{{timeFormat(scope.row[selfProps.endDate])}}</div> -->
       </template>
     </el-table-column>
     <el-table-column
       v-if="usePreColumn"
       align="center"
-      min-width="140"
+      min-width="100"
       label="前置任务"
       show-overflow-tooltip
       :prop="selfProps.endDate"
-    >
+      >
       <template slot-scope="scope">
+        {{preFormat(scope.row)}}
         <!-- @blur="self_cell_edit = null" @blur="preEditBlur" -->
-        <el-select
+        <!-- <el-select
           v-if="self_cell_edit === '_p_t_' + scope.$index"
           @change="preChange"
           v-model="scope.row[selfProps.pre]"
@@ -128,7 +130,7 @@
           :multiple="preMultiple"
           ref="wl-pre-select"
           placeholder="请选择前置任务"
-        >
+          >
           <el-option
             v-for="item in pre_options"
             :key="item[selfProps.id]"
@@ -140,7 +142,7 @@
           v-else
           class="h-full"
           @click="preCellEdit(scope.row, '_p_t_' + scope.$index, 'wl-pre-select')"
-        >{{preFormat(scope.row)}}</div>
+        >{{preFormat(scope.row)}}</div> -->
       </template>
     </el-table-column>
     <slot></slot>
@@ -211,6 +213,68 @@
       </el-table-column>
     </template>
   </el-table>
+  <!-- 编辑表单部分 -->
+  <el-dialog class="wl-gantt-dialog" title="编辑任务" :modal="false" :visible.sync="task_edit_show" width="420px">
+  <el-form :model="task_edit_form" size="medium" label-width="110px">
+    <el-form-item label="任务名称">
+      <el-input v-model="task_edit_form.name" placeholder="请填写任务名称"></el-input>
+    </el-form-item>
+    <el-form-item label="开始时间">
+      <el-date-picker
+        class="u-full"
+        v-model="task_edit_form.start_time"
+        type="date"
+        placeholder="请选择开始时间">
+      </el-date-picker>
+    </el-form-item>
+    <el-form-item label="结束时间">
+      <el-date-picker
+        class="u-full"
+        v-model="task_edit_form.end_time"
+        type="date"
+        placeholder="请选择结束时间">
+      </el-date-picker>
+    </el-form-item>
+    <el-form-item label="实际开始时间">
+      <el-date-picker
+        class="u-full"
+        v-model="task_edit_form.real_start_time"
+        type="date"
+        placeholder="请选择实际开始时间">
+      </el-date-picker>
+    </el-form-item>
+    <el-form-item label="实际结束时间">
+      <el-date-picker
+        class="u-full"
+        v-model="task_edit_form.real_end_time"
+        type="date"
+        placeholder="请选择实际结束时间">
+      </el-date-picker>
+    </el-form-item>
+    <el-form-item label="前置任务">
+      <el-select
+          class="u-full"
+          @change="preChange"
+          v-model="task_edit_form.pre_task"
+          collapse-tags
+          :multiple="preMultiple"
+          placeholder="请选择前置任务"
+          >
+          <el-option
+            v-for="item in pre_options"
+            :key="item[selfProps.id]"
+            :label="item[selfProps.name]"
+            :value="item[selfProps.id]"
+          ></el-option>
+        </el-select>
+    </el-form-item>
+  </el-form>
+  <div slot="footer" class="dialog-footer">
+    <el-button @click="task_edit_show = false">取 消</el-button>
+    <el-button type="primary" @click="taskEdit()">确 定</el-button>
+  </div>
+  </el-dialog>
+</div>
 </template>
 
 <script>
@@ -233,6 +297,9 @@ export default {
       multipleSelection: [], // 多选数据
       currentRow: null, // 单选数据
       pre_options: [], // 可选前置节点
+      task_edit_show: false, // 是否显示任务编辑表单
+      task_edit_form: {}, // 任务编辑表单
+      edit_row: {}, // 记录编辑行
       update: true // 更新视图
     };
   },
@@ -293,21 +360,6 @@ export default {
     // 是否使用内置前置任务列
     usePreColumn: {
       type: Boolean,
-      default: false
-    },
-    // 是否使用复选框列
-    useCheckColumn: {
-      type: Boolean,
-      default: false
-    },
-    // 是否使用序号列
-    useIndexColumn: {
-      type: Boolean,
-      default: false
-    },
-    // 是否可编辑
-    edit: {
-      type: Boolean,
       default: true
     },
     // 是否开启前置任务多选 如果开启多选则pre字段必须是Array，否则可以是Number\String
@@ -319,8 +371,10 @@ export default {
     // 空单元格占位符
     emptyCellText: {
       type: String,
-      default: "-"
+      default: ""
     },
+    // 内置列
+    builtInColumn: Object,
     // ---------------------------------------------以下为el-table Attributes--------------------------------------------
     defaultExpandAll: {
       type: Boolean,
@@ -452,6 +506,12 @@ export default {
         ...this.props
       };
     },
+    // 内置表格列
+    selfBuiltInColumn(){
+      return {
+        
+      }
+    },
     // 根据日期类型改样式
     dateTypeClass() {
       if (this.self_date_type === "yearAndMonth") {
@@ -464,6 +524,11 @@ export default {
     }
   },
   methods: {
+    // 任务编辑
+    taskEdit(){
+      this.$set(this.edit_row,)
+      this.task_edit_show = false;
+    },
     /**
      * 开始时间改变
      * row: object 当前行数据
@@ -567,16 +632,7 @@ export default {
     /**
      * 前置任务编辑
      */
-    preCellEdit(row, key, ref) {
-      /* let _parents = row._parents.split(","); // 父祖节点不可选
-      let _children = row._all_children.map(i => i._identityId); // 子孙节点不可选
-      let _self = row[this.selfProps.id]; // 自己不可选
-      let _parents_and_children = _children.concat(_parents, [_self]);
-      let filter_options = this.self_data_list.filter(
-        i => !_parents_and_children.some(t => t == i._identityId)
-      );
-      this.pre_options = filter_options; */
-      if(!this.edit) return;
+    preCellEdit(row) {
       this.pre_options = [];
       this.self_data_list.forEach(i => {
         if (i[this.selfProps.id] !== row[this.selfProps.id]) {
@@ -585,8 +641,6 @@ export default {
       });
       // 再剔除所有前置链涉及到的节点
       this.deepFindToSelf(row);
-      // 调用单元格编辑
-      this.cellEdit(key, ref);
     },
     /**
      * 找出to为当前元素的form，并将form作为to继续查找
@@ -613,17 +667,16 @@ export default {
       });
     },
     /**
-     * 单元格编辑
+     * 单元格编辑(废弃)
      * key: string 需要操作的单元格key
      * ref：object 需要获取焦点的dom
      */
-    cellEdit(key, ref) {
-      if(!this.edit) return;
+    /* cellEdit(key, ref) {
       this.self_cell_edit = key;
       this.$nextTick(() => {
         this.$refs[ref].focus();
       });
-    },
+    }, */
     // 以下是表格-日期-gantt生成函数----------------------------------------生成gantt表格-------------------------------------
     /**
      * 年-月模式gantt标题
@@ -1459,6 +1512,17 @@ export default {
       this.$emit("row-contextmenu", row, column, event);
     }, // 当某一行被鼠标右键点击时会触发该事件
     handleRowDbClick(row, column, event) {
+      this.preCellEdit(row);
+      this.task_edit_form = {
+        name: row[this.selfProps.name],
+        start_time: row[this.selfProps.startDate],
+        end_time: row[this.selfProps.endDate],
+        real_start_time: row[this.selfProps.realStartDate],
+        real_end_time: row[this.selfProps.realEndDate],
+        pre_task: row[this.selfProps.pre]
+      }
+      this.task_edit_show = true;
+      this.edit_row = row;
       this.$emit("row-dblclick", row, column, event);
     }, // 当某一行被双击时会触发该事件
     handleHeaderClick(column, event) {
@@ -1518,7 +1582,7 @@ $gantt_item_half: 8px;
     }
   }
 
-  .u-full.el-input {
+  .u-full, .u-full.el-input {
     width: 100%;
   }
 
@@ -1602,6 +1666,7 @@ $gantt_item_half: 8px;
     top: 70%;
     left: 0;
     right: -1px;
+    z-index: 1;
     margin-top: -$gantt_item_half;
     height: $gantt_item;
     background: #faa792; //rgba(250, 167, 146, .6);
@@ -1613,7 +1678,7 @@ $gantt_item_half: 8px;
       position: absolute;
       top: $gantt_item;
       left: 0;
-      z-index: 1;
+      z-index: 2;
       content: "";
       width: 0;
       height: 0;
@@ -1629,7 +1694,7 @@ $gantt_item_half: 8px;
       position: absolute;
       top: $gantt_item;
       right: 0;
-      z-index: 1;
+      z-index: 2;
       content: "";
       width: 0;
       height: 0;
@@ -1646,7 +1711,7 @@ $gantt_item_half: 8px;
       position: absolute;
       top: $gantt_item;
       left: 0;
-      z-index: 1;
+      z-index: 2;
       content: "";
       width: 0;
       height: 0;
@@ -1658,7 +1723,7 @@ $gantt_item_half: 8px;
       position: absolute;
       top: $gantt_item;
       right: 0;
-      z-index: 1;
+      z-index: 2;
       content: "";
       width: 0;
       height: 0;
@@ -1668,6 +1733,13 @@ $gantt_item_half: 8px;
     }
   }
   // 实际时间gantt结束
+
+    // 任务编辑表单区
+  .wl-gantt-dialog{
+    .el-dialog__body{
+      padding: 0 20px;
+    }
+  }
 }
 
 .year-and-month {

@@ -5,6 +5,8 @@
       <wlGantt
         :data="data"
         use-real-time
+        use-check-column
+        use-index-column
         default-expand-all
         date-type="monthAndDay"
         start-date="2019-9-06"
@@ -12,7 +14,8 @@
         @timeChange="timeChange"
         @preChange="preChange"
         @expand-change="expandChange"
-      ></wlGantt>
+      >
+      </wlGantt>
     </div>
   </div>
 </template>
