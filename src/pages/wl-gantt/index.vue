@@ -42,14 +42,50 @@
     @select="handleSelect"
   >
     <slot name="prv"></slot>
+    <el-table-column v-if="useCheckColumn" fixed type="selection" width="55" align="center"></el-table-column>
+    <el-table-column v-if="useIndexColumn" fixed type="index" width="50" label="#"></el-table-column>
     <el-table-column
       fixed
       label="名称"
       min-width="200"
-      show-overflow-tooltip
+      class-name="name-col"
       :prop="selfProps.name"
       :formatter="nameFormatter"
-    ></el-table-column>
+      :show-overflow-tooltip="name_show_tooltip"
+    >
+      <template slot-scope="scope">
+        <el-input 
+          v-if="self_cell_edit === '_n_m_' + scope.$index"
+          v-model="scope.row[selfProps.name]"
+          @change="nameChange(scope.row)"
+          @blur="nameBlur()"
+          size="medium"
+          class="u-full"
+          ref="wl-name" 
+          placeholder="请输入名称">
+        </el-input>
+        <strong
+          v-else
+          class="h-full"
+        >
+        <span @click="cellEdit( '_n_m_' + scope.$index, 'wl-name')">
+        {{
+          nameFormatter
+          ?
+          nameFormatter(scope.row, scope.column, scope.treeNode,scope.$index)
+          :
+          scope.row[selfProps.name]
+        }}
+        </span>
+        <span class="name-col-edit">
+          <i class="el-icon-remove-outline name-col-icon task-remove" 
+            @click="emitTaskRemove(scope.row)"></i>
+          <i class="el-icon-circle-plus-outline name-col-icon task-add" 
+            @click="emitTaskAdd(scope.row)"></i>
+        </span>
+        </strong>
+      </template>  
+    </el-table-column>
     <el-table-column
       :resizable="false"
       fixed
@@ -57,7 +93,7 @@
       align="center"
       :prop="selfProps.startDate"
       label="开始日期"
-    >
+      >
       <template slot-scope="scope">
         <el-date-picker
           v-if="self_cell_edit === '_s_d_' + scope.$index"
@@ -86,7 +122,7 @@
       align="center"
       :prop="selfProps.endDate"
       label="结束日期"
-    >
+      >
       <template slot-scope="scope">
         <el-date-picker
           v-if="self_cell_edit === '_e_d_' + scope.$index"
@@ -159,6 +195,7 @@
         >
           <template slot-scope="scope">
             <div :class="dayGanttType(scope.row, month.full_date, 'months')"></div>
+            <div v-if="useRealTime" :class="realDayGanttType(scope.row, month.full_date, 'months')"></div>
           </template>
         </el-table-column>
       </el-table-column>
@@ -180,6 +217,7 @@
         >
           <template slot-scope="scope">
             <div :class="dayGanttType(scope.row, t.full_date, 'week')"></div>
+            <div v-if="useRealTime" :class="realDayGanttType(scope.row, t.full_date, 'week')"></div>
           </template>
         </el-table-column>
       </el-table-column>
@@ -201,6 +239,7 @@
         >
           <template slot-scope="scope">
             <div :class="dayGanttType(scope.row, t.full_date)"></div>
+            <div v-if="useRealTime" :class="realDayGanttType(scope.row, t.full_date)"></div>
           </template>
         </el-table-column>
       </el-table-column>
@@ -213,7 +252,8 @@ import dayjs from "dayjs"; // 导入日期js
 const uuidv4 = require("uuid/v4"); // 导入uuid生成插件
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
-import { deepClone, flattenDeep, getMin, getMax } from "@/assets/array.js";
+import { deepClone, flattenDeep, getMin, getMax,flattenDeepParents, regDeepParents } from "@/util/array.js"; // 导入数组操作函数
+
 export default {
   name: "wlGantt",
   data() {
@@ -228,6 +268,7 @@ export default {
       multipleSelection: [], // 多选数据
       currentRow: null, // 单选数据
       pre_options: [], // 可选前置节点
+      name_show_tooltip: true, // 名称列是否开启超出隐藏
       update: true // 更新视图
     };
   },
@@ -256,6 +297,11 @@ export default {
       type: [String, Object],
       required: true
     },
+    // 是否使用实际开始时间、实际结束时间
+    useRealTime: {
+      type: Boolean,
+      default: false
+    },
     // 是否检查源数据符合规则，默认开启，如果源数据已遵循project规则，可设置为false以提高性能
     checkSource: {
       type: Boolean,
@@ -282,6 +328,26 @@ export default {
     nameFormatter: Function, // 名称列的格式化内容函数
     // 是否使用内置前置任务列
     usePreColumn: {
+      type: Boolean,
+      default: false
+    },
+    // 是否使用复选框列
+    useCheckColumn: {
+      type: Boolean,
+      default: false
+    },
+    // 是否使用序号列
+    useIndexColumn: {
+      type: Boolean,
+      default: false
+    },
+    // 是否可编辑
+    edit: {
+      type: Boolean,
+      default: true
+    },
+    // 复选框是否父子关联
+    parentChild:{
       type: Boolean,
       default: true
     },
@@ -418,7 +484,9 @@ export default {
         id: "id", // id字段
         pid: "pid", // pid字段
         startDate: "startDate", // 开始时间字段
+        realStartDate: "realStartDate", // 实际开始时间字段
         endDate: "endDate", // 结束时间字段
+        realEndDate: "realEndDate", // 实际结束时间字段
         identityId: "identityId",
         parents: "parents",
         pre: "pre", // 前置任务字段【注意：如果使用recordParents，则pre值应是目标对象的identityId字段(可配置)】
@@ -549,12 +617,13 @@ export default {
         i => !_parents_and_children.some(t => t == i._identityId)
       );
       this.pre_options = filter_options; */
+      if(!this.edit) return;
       this.pre_options = [];
       this.self_data_list.forEach(i => {
-        if(i[this.selfProps.id]!== row[this.selfProps.id]){
-          this.pre_options.push({...i, [this.selfProps.children]: null})
+        if (i[this.selfProps.id] !== row[this.selfProps.id]) {
+          this.pre_options.push({ ...i, [this.selfProps.children]: null });
         }
-      })
+      });
       // 再剔除所有前置链涉及到的节点
       this.deepFindToSelf(row);
       // 调用单元格编辑
@@ -590,10 +659,25 @@ export default {
      * ref：object 需要获取焦点的dom
      */
     cellEdit(key, ref) {
+      if(!this.edit) return;
+      if(ref === 'wl-name'){
+        this.name_show_tooltip = false;
+      }
       this.self_cell_edit = key;
       this.$nextTick(() => {
         this.$refs[ref].focus();
       });
+    },
+    // 名称编辑事件
+    nameChange(row){
+      this.self_cell_edit = null;
+      this.name_show_tooltip = true;
+      this.emitNameChange(row);
+    },
+    // 名称列编辑输入框blur事件
+    nameBlur(){
+      this.self_cell_edit = null;
+      this.name_show_tooltip = true;
     },
     // 以下是表格-日期-gantt生成函数----------------------------------------生成gantt表格-------------------------------------
     /**
@@ -885,6 +969,31 @@ export default {
         return "wl-item-on wl-item-end";
       }
     },
+    /**
+     * 实际日期gantt状态
+     * row: object 当前行信息
+     * date: string 当前格子日期
+     * unit: string 时间单位，以天、月、年计算
+     */
+    realDayGanttType(row, date, unit = "days") {
+      let start_date = row[this.selfProps.realStartDate];
+      let end_date = row[this.selfProps.realEndDate];
+      let between = dayjs(date).isBetween(start_date, end_date, unit);
+      if (between) {
+        return "wl-real-on";
+      }
+      let start = dayjs(start_date).isSame(date, unit);
+      let end = dayjs(end_date).isSame(date, unit);
+      if (start && end) {
+        return "wl-real-on wl-real-full";
+      }
+      if (start) {
+        return "wl-real-on wl-real-start";
+      }
+      if (end) {
+        return "wl-real-on wl-real-end";
+      }
+    },
     // 以下是时间计算类函数 ------------------------------------------------------时间计算---------------------------------------
     /**
      * 计算时差
@@ -930,6 +1039,18 @@ export default {
       return dayjs(date).day();
     },
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
+    // 删除任务
+    emitTaskRemove(item){
+      this.$emit("taskRemove", item);
+    },
+    // 添加任务
+    emitTaskAdd(item){
+      this.$emit("taskAdd", item);
+    },
+    // 任务名称更改
+    emitNameChange(item){
+      this.$emit("nameChange", item);
+    },
     // 任务时间更改
     emitTimeChange(item) {
       this.$emit("timeChange", item);
@@ -1371,6 +1492,39 @@ export default {
         this.selfData.sort();
       }
     },
+    // 父子关联
+    tableSelect(val, row) {
+      if (!this.parentChild) return;
+      // 选中
+      if (val.some(item => item[this.selfProps.id] == row[this.selfProps.id])) {
+        // 父元素选中全选所有子孙元素
+        // for (let item of val) {
+          row._all_children.forEach(i => {
+            this.$refs["wl-gantt"].toggleRowSelection(i, true);
+          });
+        // }
+        // 子元素全选向上查找所有满足条件的祖先元素
+        regDeepParents(row, "_parent", parents => {
+          let reg =
+            parents &&
+            parents[this.selfProps.children].every(item => {
+              return val.some(
+                it => it[this.selfProps.id] == item[this.selfProps.id]
+              );
+            });
+          if (reg) this.$refs["wl-gantt"].toggleRowSelection(parents, true);
+        });
+      } else {
+        // 非选中将所有子孙元素及支线上祖先元素清除
+        let cancel_data = [
+          ...row._all_children,
+          ...flattenDeepParents([row], "_parent")
+        ];
+        for (let item of cancel_data) {
+          this.$refs["wl-gantt"].toggleRowSelection(item, false);
+        }
+      }
+    },
     // el-table事件----------------------------------------------以下为原el-table事件输出------------------------------------------------
     handleSelectionChange(val) {
       this.$emit("selection-change", val);
@@ -1381,9 +1535,14 @@ export default {
       this.currentRow = val;
     }, // 当表格的当前行发生变化的时候会触发该事件
     handleSelectAll(val) {
+      let is_check = val.length > 0;
+      this.self_data_list.forEach(i => {
+        this.$refs["wl-gantt"].toggleRowSelection(i, is_check);
+      })
       this.$emit("select-all", val);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleSelect(selection, row) {
+      this.tableSelect(selection, row);
       this.$emit("select", selection, row);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleMouseEnter(row, column, cell, event) {
@@ -1468,6 +1627,7 @@ $gantt_item_half: 8px;
     width: 100%;
   }
 
+  // 计划时间gantt开始
   .wl-item-on {
     position: absolute;
     top: 50%;
@@ -1537,6 +1697,107 @@ $gantt_item_half: 8px;
       border-color: transparent #409eff;
       border-width: 0 6px 6px 0;
       border-style: solid;
+    }
+  }
+  // 计划时间gantt结束
+
+  // 实际时间gantt开始
+  .wl-real-on {
+    position: absolute;
+    top: 70%;
+    left: 0;
+    right: -1px;
+    margin-top: -$gantt_item_half;
+    height: $gantt_item;
+    background: #faa792; //rgba(250, 167, 146, .6);
+    transition: all 0.4s;
+  }
+  .wl-real-start {
+    left: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #faa792 transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-real-end {
+    right: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #faa792;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-real-full {
+    left: 0;
+    right: 0;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #faa792 transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #faa792;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+  // 实际时间gantt结束
+
+  // 名称列
+  .name-col{
+    position: relative;
+    &:hover .name-col-edit{
+      display: inline-block;
+    }
+
+    .name-col-edit {
+      display: none;
+      position: absolute;
+      right: 0;
+    }
+
+    .name-col-icon {
+      padding: 6px 3px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .task-remove{
+      color: #F56C6C;
+    }
+    .task-add{
+      color: #409EFF;
     }
   }
 }

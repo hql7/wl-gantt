@@ -48,10 +48,44 @@
       fixed
       label="名称"
       min-width="200"
-      show-overflow-tooltip
+      class-name="name-col"
       :prop="selfProps.name"
       :formatter="nameFormatter"
-    ></el-table-column>
+      :show-overflow-tooltip="name_show_tooltip"
+    >
+      <template slot-scope="scope">
+        <el-input 
+          v-if="self_cell_edit === '_n_m_' + scope.$index"
+          v-model="scope.row[selfProps.name]"
+          @change="nameChange(scope.row)"
+          @blur="nameBlur()"
+          size="medium"
+          class="u-full"
+          ref="wl-name" 
+          placeholder="请输入名称">
+        </el-input>
+        <strong
+          v-else
+          class="h-full"
+        >
+        <span @click="cellEdit( '_n_m_' + scope.$index, 'wl-name')">
+        {{
+          nameFormatter
+          ?
+          nameFormatter(scope.row, scope.column, scope.treeNode,scope.$index)
+          :
+          scope.row[selfProps.name]
+        }}
+        </span>
+        <span class="name-col-edit">
+          <i class="el-icon-remove-outline name-col-icon task-remove" 
+            @click="emitTaskRemove(scope.row)"></i>
+          <i class="el-icon-circle-plus-outline name-col-icon task-add" 
+            @click="emitTaskAdd(scope.row)"></i>
+        </span>
+        </strong>
+      </template>  
+    </el-table-column>
     <el-table-column
       :resizable="false"
       fixed
@@ -234,6 +268,7 @@ export default {
       multipleSelection: [], // 多选数据
       currentRow: null, // 单选数据
       pre_options: [], // 可选前置节点
+      name_show_tooltip: true, // 名称列是否开启超出隐藏
       update: true // 更新视图
     };
   },
@@ -625,10 +660,24 @@ export default {
      */
     cellEdit(key, ref) {
       if(!this.edit) return;
+      if(ref === 'wl-name'){
+        this.name_show_tooltip = false;
+      }
       this.self_cell_edit = key;
       this.$nextTick(() => {
         this.$refs[ref].focus();
       });
+    },
+    // 名称编辑事件
+    nameChange(row){
+      this.self_cell_edit = null;
+      this.name_show_tooltip = true;
+      this.emitNameChange(row);
+    },
+    // 名称列编辑输入框blur事件
+    nameBlur(){
+      this.self_cell_edit = null;
+      this.name_show_tooltip = true;
     },
     // 以下是表格-日期-gantt生成函数----------------------------------------生成gantt表格-------------------------------------
     /**
@@ -990,6 +1039,18 @@ export default {
       return dayjs(date).day();
     },
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
+    // 删除任务
+    emitTaskRemove(item){
+      this.$emit("taskRemove", item);
+    },
+    // 添加任务
+    emitTaskAdd(item){
+      this.$emit("taskAdd", item);
+    },
+    // 任务名称更改
+    emitNameChange(item){
+      this.$emit("nameChange", item);
+    },
     // 任务时间更改
     emitTimeChange(item) {
       this.$emit("timeChange", item);
@@ -1444,7 +1505,6 @@ export default {
         // }
         // 子元素全选向上查找所有满足条件的祖先元素
         regDeepParents(row, "_parent", parents => {
-          // console.log(parents, )
           let reg =
             parents &&
             parents[this.selfProps.children].every(item => {
@@ -1713,6 +1773,33 @@ $gantt_item_half: 8px;
     }
   }
   // 实际时间gantt结束
+
+  // 名称列
+  .name-col{
+    position: relative;
+    &:hover .name-col-edit{
+      display: inline-block;
+    }
+
+    .name-col-edit {
+      display: none;
+      position: absolute;
+      right: 0;
+    }
+
+    .name-col-icon {
+      padding: 6px 3px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .task-remove{
+      color: #F56C6C;
+    }
+    .task-add{
+      color: #409EFF;
+    }
+  }
 }
 
 .year-and-month {

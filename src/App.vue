@@ -15,6 +15,8 @@
         @preChange="preChange"
         @expand-change="expandChange"
         @selection-change="selectionChange"
+        @taskRemove="taskRemove"
+        @taskAdd="taskAdd"
       >
       </wlGantt>
     </div>
@@ -22,8 +24,8 @@
 </template>
 
 <script>
-import wlGantt from "./components/gantt.vue";
-// import wlGantt from '@/pages/wl-gantt'
+// import wlGantt from "./components/gantt.vue";
+import wlGantt from '@/pages/wl-gantt'
 
 export default {
   name: "app",
@@ -184,6 +186,14 @@ export default {
     // 多选选择
     selectionChange(val){
       console.log('多选：', val)
+    },
+    // 删除任务
+    taskRemove(item){
+      console.log('删除任务：', item)
+    },
+    // 添加任务
+    taskAdd(item){
+      console.log('添加任务：', item)
     }
   },
   components: {
