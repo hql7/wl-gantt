@@ -41,6 +41,7 @@
 
 ### 更新说明
 
+  > 2020-02-20 更新gantt，详见版本说明1.0.1
   > 2019-12-14 更新gantt，增加内置前置任务列，支持多选前置和单选前置，并自动校验源数据前置任务合法性。
   > 2019-12-3 更新gantt。1表格支持[el-table](https://element.eleme.cn/#/zh-CN/component/table)大部分`Attributes`和`Events`,详细列表见下方；2名称列增加`nameFormatter`格式化内容函数支持；3日期列改为点击显示编辑输入框的形式。  
   > 2019-12-2 更新gantt.1日期支持` yearAndMonth、monthAndDay、yearAndWeek`类型，详见`版本记录1`；2修复部分时间更改情况不回调的问题。
