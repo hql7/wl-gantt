@@ -43,7 +43,7 @@
   >
     <slot name="prv"></slot>
     <el-table-column v-if="useCheckColumn" fixed type="selection" width="55" align="center"></el-table-column>
-    <el-table-column v-if="useIndexColumn" fixed type="index" width="50" label="#"></el-table-column>
+    <el-table-column v-if="useIndexColumn" fixed type="index" width="50" label="序号"></el-table-column>
     <el-table-column
       fixed
       label="名称"

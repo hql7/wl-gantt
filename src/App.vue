@@ -3,7 +3,9 @@
     <img src="./assets/logo.png" />
     <div class="wl-gantt-demo">
       <wlGantt
+        ref="wl-gantt-demo"
         :data="data"
+        lazy
         use-real-time
         use-check-column
         use-index-column
@@ -17,15 +19,14 @@
         @selection-change="selectionChange"
         @taskRemove="taskRemove"
         @taskAdd="taskAdd"
-      >
-      </wlGantt>
+      ></wlGantt>
     </div>
   </div>
 </template>
 
 <script>
 // import wlGantt from "./components/gantt.vue";
-import wlGantt from '@/pages/wl-gantt'
+import wlGantt from "@/pages/wl-gantt";
 
 export default {
   name: "app",
@@ -158,7 +159,7 @@ export default {
           endDate: "2019-10-31"
         }
       ], // 数据
-      selected:[] // 选中数据
+      selected: [] // 选中数据
     };
   },
   methods: {
@@ -184,16 +185,37 @@ export default {
       console.log("展开行:", row, expanded);
     },
     // 多选选择
-    selectionChange(val){
-      console.log('多选：', val)
+    selectionChange(val) {
+      console.log("多选：", val);
     },
     // 删除任务
-    taskRemove(item){
-      console.log('删除任务：', item)
+    taskRemove(item) {
+      console.log("删除任务：", item);
     },
     // 添加任务
-    taskAdd(item){
-      console.log('添加任务：', item)
+    taskAdd(item) {
+      console.log("添加任务：", item);
+      this.$refs["wl-gantt-demo"].loadTreeAdd(item.id, {
+        pid: item.id,
+        id: "###",
+        name: "一轮新月",
+        startDate: "2019-10-11",
+        endDate: "2019-10-19"
+      });
+    },
+    // 懒加载
+    lazyLoad(tree, treeNode, resolve) {
+      setTimeout(() => {
+        resolve([
+          {
+            id: "1-1-1",
+            pid: tree.id,
+            name: "日落云巅",
+            startDate: "2019-09-10",
+            endDate: "2019-09-13"
+          }
+        ]);
+      }, 1000);
     }
   },
   components: {

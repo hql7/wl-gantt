@@ -4,6 +4,8 @@
     class="wl-gantt"
     :fit="fit"
     :size="size"
+    :load="load"
+    :lazy="lazy"
     :border="border"
     :data="selfData"
     :stripe="stripe"
@@ -43,7 +45,7 @@
   >
     <slot name="prv"></slot>
     <el-table-column v-if="useCheckColumn" fixed type="selection" width="55" align="center"></el-table-column>
-    <el-table-column v-if="useIndexColumn" fixed type="index" width="50" label="#"></el-table-column>
+    <el-table-column v-if="useIndexColumn" fixed type="index" width="50" label="序号"></el-table-column>
     <el-table-column
       fixed
       label="名称"
@@ -54,37 +56,38 @@
       :show-overflow-tooltip="name_show_tooltip"
     >
       <template slot-scope="scope">
-        <el-input 
+        <el-input
           v-if="self_cell_edit === '_n_m_' + scope.$index"
           v-model="scope.row[selfProps.name]"
           @change="nameChange(scope.row)"
           @blur="nameBlur()"
           size="medium"
           class="u-full"
-          ref="wl-name" 
-          placeholder="请输入名称">
-        </el-input>
-        <strong
-          v-else
-          class="h-full"
-        >
-        <span @click="cellEdit( '_n_m_' + scope.$index, 'wl-name')">
-        {{
-          nameFormatter
-          ?
-          nameFormatter(scope.row, scope.column, scope.treeNode,scope.$index)
-          :
-          scope.row[selfProps.name]
-        }}
-        </span>
-        <span class="name-col-edit">
-          <i class="el-icon-remove-outline name-col-icon task-remove" 
-            @click="emitTaskRemove(scope.row)"></i>
-          <i class="el-icon-circle-plus-outline name-col-icon task-add" 
-            @click="emitTaskAdd(scope.row)"></i>
-        </span>
+          ref="wl-name"
+          placeholder="请输入名称"
+        ></el-input>
+        <strong v-else class="h-full">
+          <span @click="cellEdit( '_n_m_' + scope.$index, 'wl-name')">
+            {{
+            nameFormatter
+            ?
+            nameFormatter(scope.row, scope.column, scope.treeNode,scope.$index)
+            :
+            scope.row[selfProps.name]
+            }}
+          </span>
+          <span class="name-col-edit">
+            <i
+              class="el-icon-remove-outline name-col-icon task-remove"
+              @click="emitTaskRemove(scope.row)"
+            ></i>
+            <i
+              class="el-icon-circle-plus-outline name-col-icon task-add"
+              @click="emitTaskAdd(scope.row)"
+            ></i>
+          </span>
         </strong>
-      </template>  
+      </template>
     </el-table-column>
     <el-table-column
       :resizable="false"
@@ -93,7 +96,7 @@
       align="center"
       :prop="selfProps.startDate"
       label="开始日期"
-      >
+    >
       <template slot-scope="scope">
         <el-date-picker
           v-if="self_cell_edit === '_s_d_' + scope.$index"
@@ -122,7 +125,7 @@
       align="center"
       :prop="selfProps.endDate"
       label="结束日期"
-      >
+    >
       <template slot-scope="scope">
         <el-date-picker
           v-if="self_cell_edit === '_e_d_' + scope.$index"
@@ -252,7 +255,14 @@ import dayjs from "dayjs"; // 导入日期js
 const uuidv4 = require("uuid/v4"); // 导入uuid生成插件
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
-import { deepClone, flattenDeep, getMin, getMax,flattenDeepParents, regDeepParents } from "@/util/array.js"; // 导入数组操作函数
+import {
+  deepClone,
+  flattenDeep,
+  getMin,
+  getMax,
+  flattenDeepParents,
+  regDeepParents
+} from "@/util/array.js"; // 导入数组操作函数
 
 export default {
   name: "wlGantt",
@@ -269,7 +279,8 @@ export default {
       currentRow: null, // 单选数据
       pre_options: [], // 可选前置节点
       name_show_tooltip: true, // 名称列是否开启超出隐藏
-      update: true // 更新视图
+      update: true, // 更新视图
+      selectionList: [] // 多选选中数据
     };
   },
   props: {
@@ -347,7 +358,7 @@ export default {
       default: true
     },
     // 复选框是否父子关联
-    parentChild:{
+    parentChild: {
       type: Boolean,
       default: true
     },
@@ -361,6 +372,11 @@ export default {
     emptyCellText: {
       type: String,
       default: "-"
+    },
+    // 多选时，是否可以点击行快速选中复选框
+    quickCheck: {
+      type: Boolean,
+      default: false
     },
     // ---------------------------------------------以下为el-table Attributes--------------------------------------------
     defaultExpandAll: {
@@ -401,7 +417,14 @@ export default {
     headerRowStyle: [Function, Object], // 表头行的 style 的回调方法
     headerCellClassName: [Function, String], // 表头单元格的 className 的回调方法
     headerCellStyle: [Function, Object], // 表头单元格的 style 的回调方法
-    expandRowKeys: Array // 可以通过该属性设置 Table 目前的展开行
+    expandRowKeys: Array, // 可以通过该属性设置 Table 目前的展开行
+    // 是否懒加载子节点数据
+    lazy: {
+      type: Boolean,
+      default: false
+    },
+    // 加载子节点数据的函数，lazy 为 true 时生效
+    load: Function
     // 是否使用一维数据组成树
     /* arrayToTree: {
       type: Boolean,
@@ -617,7 +640,7 @@ export default {
         i => !_parents_and_children.some(t => t == i._identityId)
       );
       this.pre_options = filter_options; */
-      if(!this.edit) return;
+      if (!this.edit) return;
       this.pre_options = [];
       this.self_data_list.forEach(i => {
         if (i[this.selfProps.id] !== row[this.selfProps.id]) {
@@ -659,8 +682,8 @@ export default {
      * ref：object 需要获取焦点的dom
      */
     cellEdit(key, ref) {
-      if(!this.edit) return;
-      if(ref === 'wl-name'){
+      if (!this.edit) return;
+      if (ref === "wl-name") {
         this.name_show_tooltip = false;
       }
       this.self_cell_edit = key;
@@ -669,13 +692,13 @@ export default {
       });
     },
     // 名称编辑事件
-    nameChange(row){
+    nameChange(row) {
       this.self_cell_edit = null;
       this.name_show_tooltip = true;
       this.emitNameChange(row);
     },
     // 名称列编辑输入框blur事件
-    nameBlur(){
+    nameBlur() {
       this.self_cell_edit = null;
       this.name_show_tooltip = true;
     },
@@ -1040,15 +1063,15 @@ export default {
     },
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
     // 删除任务
-    emitTaskRemove(item){
+    emitTaskRemove(item) {
       this.$emit("taskRemove", item);
     },
     // 添加任务
-    emitTaskAdd(item){
+    emitTaskAdd(item) {
       this.$emit("taskAdd", item);
     },
     // 任务名称更改
-    emitNameChange(item){
+    emitNameChange(item) {
       this.$emit("nameChange", item);
     },
     // 任务时间更改
@@ -1499,9 +1522,9 @@ export default {
       if (val.some(item => item[this.selfProps.id] == row[this.selfProps.id])) {
         // 父元素选中全选所有子孙元素
         // for (let item of val) {
-          row._all_children.forEach(i => {
-            this.$refs["wl-gantt"].toggleRowSelection(i, true);
-          });
+        row._all_children.forEach(i => {
+          this.$refs["wl-gantt"].toggleRowSelection(i, true);
+        });
         // }
         // 子元素全选向上查找所有满足条件的祖先元素
         regDeepParents(row, "_parent", parents => {
@@ -1538,12 +1561,14 @@ export default {
       let is_check = val.length > 0;
       this.self_data_list.forEach(i => {
         this.$refs["wl-gantt"].toggleRowSelection(i, is_check);
-      })
+      });
       this.$emit("select-all", val);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleSelect(selection, row) {
       this.tableSelect(selection, row);
-      this.$emit("select", selection, row);
+      let _is_add = selection.some(i => i[this.rowKey] === row[this.rowKey]);
+      this.selectionList = selection;
+      this.$emit("select", selection, row, _is_add);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleMouseEnter(row, column, cell, event) {
       this.$emit("cell-mouse-enter", row, column, cell, event);
@@ -1558,6 +1583,15 @@ export default {
       this.$emit("cell-dblclick", row, column, cell, event);
     }, // 当某个单元格被双击击时会触发该事件
     handleRowClick(row, column, event) {
+      /* if (this.useCheckColumn && this.quickCheck) {
+        let is_check = this.selectionList.some(
+          i => i[this.rowKey] == row[this.rowKey]
+        );
+        this.$refs["wl-gantt"].toggleRowSelection(row, !is_check);
+        this.$nextTick(() => {
+          this.handleSelect(this.selectionList, row, !is_check);
+        });
+      } */
       this.$emit("row-click", row, column, event);
     }, // 当某一行被点击时会触发该事件
     handleRowContextMenu(row, column, event) {
@@ -1580,7 +1614,44 @@ export default {
     }, // 当表格的筛选条件发生变化的时候会触发该事件
     handleExpandChange(row, expanded) {
       this.$emit("expand-change", row, expanded);
-    } // 当表格的筛选条件发生变化的时候会触发该事件
+    }, // 当表格的筛选条件发生变化的时候会触发该事件
+    // ------------------------------------------- 以下为提供方法 ------------------------------------
+    /**
+     * 手动调用树表懒加载
+     * row 要展开的行信息
+     */
+    loadTree(row) {
+      this.$refs["tableRef"].store.loadOrToggle(row);
+    },
+    /**
+     * 更新树表懒加载后的子节点
+     * 要更新的节点id
+     * 要添加的节点data
+     */
+    loadTreeAdd(id, data) {
+      let _children =
+        this.$refs["wl-gantt"].store.states.lazyTreeNodeMap[id] || [];
+      _children.unshift(data);
+      this.$set(
+        this.$refs["wl-gantt"].store.states.lazyTreeNodeMap,
+        id,
+        _children
+      );
+    },
+    /**
+     * 更新树表懒加载后的子节点
+     * 要更新的节点id
+     * 要删掉的字节的rowKey
+     */
+    loadTreeRemove(id, key) {
+      let _children = this.$refs["wl-gantt"].store.states.lazyTreeNodeMap[id];
+      let _new_children = _children.filter(i => i[this.rowKey] != key);
+      this.$set(
+        this.$refs["wl-gantt"].store.states.lazyTreeNodeMap,
+        id,
+        _new_children
+      );
+    }
   },
   watch: {
     dateType(val) {
@@ -1775,9 +1846,9 @@ $gantt_item_half: 8px;
   // 实际时间gantt结束
 
   // 名称列
-  .name-col{
+  .name-col {
     position: relative;
-    &:hover .name-col-edit{
+    &:hover .name-col-edit {
       display: inline-block;
     }
 
@@ -1793,11 +1864,11 @@ $gantt_item_half: 8px;
       font-size: 16px;
     }
 
-    .task-remove{
-      color: #F56C6C;
+    .task-remove {
+      color: #f56c6c;
     }
-    .task-add{
-      color: #409EFF;
+    .task-add {
+      color: #409eff;
     }
   }
 }
