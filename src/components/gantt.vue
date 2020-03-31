@@ -54,37 +54,38 @@
       :show-overflow-tooltip="name_show_tooltip"
     >
       <template slot-scope="scope">
-        <el-input 
+        <el-input
           v-if="self_cell_edit === '_n_m_' + scope.$index"
           v-model="scope.row[selfProps.name]"
           @change="nameChange(scope.row)"
           @blur="nameBlur()"
           size="medium"
           class="u-full"
-          ref="wl-name" 
-          placeholder="请输入名称">
-        </el-input>
-        <strong
-          v-else
-          class="h-full"
-        >
-        <span @click="cellEdit( '_n_m_' + scope.$index, 'wl-name')">
-        {{
-          nameFormatter
-          ?
-          nameFormatter(scope.row, scope.column, scope.treeNode,scope.$index)
-          :
-          scope.row[selfProps.name]
-        }}
-        </span>
-        <span class="name-col-edit">
-          <i class="el-icon-remove-outline name-col-icon task-remove" 
-            @click="emitTaskRemove(scope.row)"></i>
-          <i class="el-icon-circle-plus-outline name-col-icon task-add" 
-            @click="emitTaskAdd(scope.row)"></i>
-        </span>
+          ref="wl-name"
+          placeholder="请输入名称"
+        ></el-input>
+        <strong v-else class="h-full">
+          <span @click="cellEdit( '_n_m_' + scope.$index, 'wl-name')">
+            {{
+            nameFormatter
+            ?
+            nameFormatter(scope.row, scope.column, scope.treeNode,scope.$index)
+            :
+            scope.row[selfProps.name]
+            }}
+          </span>
+          <span class="name-col-edit">
+            <i
+              class="el-icon-remove-outline name-col-icon task-remove"
+              @click="emitTaskRemove(scope.row)"
+            ></i>
+            <i
+              class="el-icon-circle-plus-outline name-col-icon task-add"
+              @click="emitTaskAdd(scope.row)"
+            ></i>
+          </span>
         </strong>
-      </template>  
+      </template>
     </el-table-column>
     <el-table-column
       :resizable="false"
@@ -93,7 +94,7 @@
       align="center"
       :prop="selfProps.startDate"
       label="开始日期"
-      >
+    >
       <template slot-scope="scope">
         <el-date-picker
           v-if="self_cell_edit === '_s_d_' + scope.$index"
@@ -122,7 +123,7 @@
       align="center"
       :prop="selfProps.endDate"
       label="结束日期"
-      >
+    >
       <template slot-scope="scope">
         <el-date-picker
           v-if="self_cell_edit === '_e_d_' + scope.$index"
@@ -252,7 +253,14 @@ import dayjs from "dayjs"; // 导入日期js
 const uuidv4 = require("uuid/v4"); // 导入uuid生成插件
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
-import { deepClone, flattenDeep, getMin, getMax,flattenDeepParents, regDeepParents } from "@/util/array.js"; // 导入数组操作函数
+import {
+  deepClone,
+  flattenDeep,
+  getMin,
+  getMax,
+  flattenDeepParents,
+  regDeepParents
+} from "@/util/array.js"; // 导入数组操作函数
 
 export default {
   name: "wlGantt",
@@ -347,7 +355,7 @@ export default {
       default: true
     },
     // 复选框是否父子关联
-    parentChild:{
+    parentChild: {
       type: Boolean,
       default: true
     },
@@ -617,7 +625,7 @@ export default {
         i => !_parents_and_children.some(t => t == i._identityId)
       );
       this.pre_options = filter_options; */
-      if(!this.edit) return;
+      if (!this.edit) return;
       this.pre_options = [];
       this.self_data_list.forEach(i => {
         if (i[this.selfProps.id] !== row[this.selfProps.id]) {
@@ -659,8 +667,8 @@ export default {
      * ref：object 需要获取焦点的dom
      */
     cellEdit(key, ref) {
-      if(!this.edit) return;
-      if(ref === 'wl-name'){
+      if (!this.edit) return;
+      if (ref === "wl-name") {
         this.name_show_tooltip = false;
       }
       this.self_cell_edit = key;
@@ -669,13 +677,13 @@ export default {
       });
     },
     // 名称编辑事件
-    nameChange(row){
+    nameChange(row) {
       this.self_cell_edit = null;
       this.name_show_tooltip = true;
       this.emitNameChange(row);
     },
     // 名称列编辑输入框blur事件
-    nameBlur(){
+    nameBlur() {
       this.self_cell_edit = null;
       this.name_show_tooltip = true;
     },
@@ -1040,15 +1048,15 @@ export default {
     },
     // 以下为输出数据函数 --------------------------------------------------------------输出数据------------------------------------
     // 删除任务
-    emitTaskRemove(item){
+    emitTaskRemove(item) {
       this.$emit("taskRemove", item);
     },
     // 添加任务
-    emitTaskAdd(item){
+    emitTaskAdd(item) {
       this.$emit("taskAdd", item);
     },
     // 任务名称更改
-    emitNameChange(item){
+    emitNameChange(item) {
       this.$emit("nameChange", item);
     },
     // 任务时间更改
@@ -1499,9 +1507,9 @@ export default {
       if (val.some(item => item[this.selfProps.id] == row[this.selfProps.id])) {
         // 父元素选中全选所有子孙元素
         // for (let item of val) {
-          row._all_children.forEach(i => {
-            this.$refs["wl-gantt"].toggleRowSelection(i, true);
-          });
+        row._all_children.forEach(i => {
+          this.$refs["wl-gantt"].toggleRowSelection(i, true);
+        });
         // }
         // 子元素全选向上查找所有满足条件的祖先元素
         regDeepParents(row, "_parent", parents => {
@@ -1538,7 +1546,7 @@ export default {
       let is_check = val.length > 0;
       this.self_data_list.forEach(i => {
         this.$refs["wl-gantt"].toggleRowSelection(i, is_check);
-      })
+      });
       this.$emit("select-all", val);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleSelect(selection, row) {
@@ -1775,9 +1783,9 @@ $gantt_item_half: 8px;
   // 实际时间gantt结束
 
   // 名称列
-  .name-col{
+  .name-col {
     position: relative;
-    &:hover .name-col-edit{
+    &:hover .name-col-edit {
       display: inline-block;
     }
 
@@ -1793,11 +1801,11 @@ $gantt_item_half: 8px;
       font-size: 16px;
     }
 
-    .task-remove{
-      color: #F56C6C;
+    .task-remove {
+      color: #f56c6c;
     }
-    .task-add{
-      color: #409EFF;
+    .task-add {
+      color: #409eff;
     }
   }
 }
