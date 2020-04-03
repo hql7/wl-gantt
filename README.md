@@ -17,30 +17,30 @@
     5. 任务自定义悬浮提示   
     6. 和所有你觉得需要用到的需求 
 
-### [在线演示](https://hql7.github.io/) - [GitHub](https://github.com/hql7)
+### [在线演示](http://wlui.com.cn/ui/gantt) - [GitHub](https://github.com/hql7)
 
 ### wl-gantt 与市面应用较广的大佬型插件对比
 
 > wl-gantt 外观简洁清爽，非常简单易用，高度可配置
-  ![wl-gantt](https://wlsy.oss-cn-hangzhou.aliyuncs.com/wl-gantt.png?Expires=1576325132&OSSAccessKeyId=TMP.hj6HZTBBv18AYim1116sfYs2Fryvwdds6GLGUC3jnUJXXbU967q63s7hDRWE1ZpbFm18SVDbBihEFfxRnfAE2z2Gr2SrqqRLTSeZ5cYs4nXWuSKo6Mv7v6SHfE8aU5.tmp&Signature=bc0tl%2BKboG%2FgYaVJ%2BXuD3BIF1lI%3D)
+  ![wl-gantt](http://wlsy.oss-cn-hangzhou.aliyuncs.com/wl-gantt.png)
   
 > jquery Gantt 笨重、老旧、较丑但文档还算清晰
-  ![jquery Gantt](https://wlsy.oss-cn-hangzhou.aliyuncs.com/jq-gantt.png?Expires=1576325361&OSSAccessKeyId=TMP.hj6HZTBBv18AYim1116sfYs2Fryvwdds6GLGUC3jnUJXXbU967q63s7hDRWE1ZpbFm18SVDbBihEFfxRnfAE2z2Gr2SrqqRLTSeZ5cYs4nXWuSKo6Mv7v6SHfE8aU5.tmp&Signature=oKqyBzbICfik8TEEX9E2ddDwguQ%3D)
+  ![jquery Gantt](http://wlsy.oss-cn-hangzhou.aliyuncs.com/jq-gantt.png)
 
 > js gantt 不想多说了
-  ![js gantt](https://wlsy.oss-cn-hangzhou.aliyuncs.com/js-gantt.png?Expires=1576325512&OSSAccessKeyId=TMP.hj6HZTBBv18AYim1116sfYs2Fryvwdds6GLGUC3jnUJXXbU967q63s7hDRWE1ZpbFm18SVDbBihEFfxRnfAE2z2Gr2SrqqRLTSeZ5cYs4nXWuSKo6Mv7v6SHfE8aU5.tmp&Signature=yeFQ8%2Bn8gpnyFMZ4Eaj5McLtebg%3D)
+  ![js gantt](http://wlsy.oss-cn-hangzhou.aliyuncs.com/js-gantt.png)
 
 > dhtmlxGantt 功能强大、全面；但是使用难度高，不切合现代框架及ui库，很难在项目中完美应用
-  ![dhtmlxGantt](https://wlsy.oss-cn-hangzhou.aliyuncs.com/dhtmlxGantt.png?Expires=1576325689&OSSAccessKeyId=TMP.hj6HZTBBv18AYim1116sfYs2Fryvwdds6GLGUC3jnUJXXbU967q63s7hDRWE1ZpbFm18SVDbBihEFfxRnfAE2z2Gr2SrqqRLTSeZ5cYs4nXWuSKo6Mv7v6SHfE8aU5.tmp&Signature=P8JP1UWDwISboj85lTlluzTk6ks%3D)
+  ![dhtmlxGantt](http://wlsy.oss-cn-hangzhou.aliyuncs.com/dhtmlxGantt.png)
 
 > frappe-gantt 功能好少
-  ![frappe](https://wlsy.oss-cn-hangzhou.aliyuncs.com/frappe.png?Expires=1576326005&OSSAccessKeyId=TMP.hj6HZTBBv18AYim1116sfYs2Fryvwdds6GLGUC3jnUJXXbU967q63s7hDRWE1ZpbFm18SVDbBihEFfxRnfAE2z2Gr2SrqqRLTSeZ5cYs4nXWuSKo6Mv7v6SHfE8aU5.tmp&Signature=GH2aSHTVl2gKk0CNPZomZLb5yqo%3D)
+  ![frappe](http://wlsy.oss-cn-hangzhou.aliyuncs.com/frappe.png)
 
-> bryntum 唯一较美观的，但是可配置性差，无法和组件结合;不校验源数据正确性就报错、崩溃;规则死板不符合项目使用；收费年950$; 功能强大但文档只有简单介绍。  
-  ![bryntum](https://wlsy.oss-cn-hangzhou.aliyuncs.com/bryntum.png?Expires=1576326783&OSSAccessKeyId=TMP.hj6HZTBBv18AYim1116sfYs2Fryvwdds6GLGUC3jnUJXXbU967q63s7hDRWE1ZpbFm18SVDbBihEFfxRnfAE2z2Gr2SrqqRLTSeZ5cYs4nXWuSKo6Mv7v6SHfE8aU5.tmp&Signature=gQk2kyuTwU0zoEVwOOeFlqje3E0%3D)
+> bryntum 唯一较美观的，但是可配置性差，无法和组件结合;不校验源数据正确性就报错、崩溃;规则死板不符合项目使用；收费年950$; 功能强大但文档只有简单介绍，详细用法只能控制台打印
+  ![bryntum](http://wlsy.oss-cn-hangzhou.aliyuncs.com/bryntum.png)
 
 ### 更新说明
-
+  > 2020-04-03 懒加载
   > 2020-02-20 更新gantt，详见版本说明1.0.1
   > 2019-12-14 更新gantt，增加内置前置任务列，支持多选前置和单选前置，并自动校验源数据前置任务合法性。
   > 2019-12-3 更新gantt。1表格支持[el-table](https://element.eleme.cn/#/zh-CN/component/table)大部分`Attributes`和`Events`,详细列表见下方；2名称列增加`nameFormatter`格式化内容函数支持；3日期列改为点击显示编辑输入框的形式。  
@@ -104,7 +104,7 @@
 `Vue.use(wlGantt)`  
 
 ## 文档
-###  Attributes
+###  Attributes 参数
   | 序号 | 参数 | 说明 | 类型 | 可选值 | 默认值 | 注意 |
   | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
   | 1 | data | 数据 | Array | - | [] | - |
@@ -125,8 +125,11 @@
   | 16 | useIndexColumn | 是否使用内置序号列 | Boolean | - | false | - | 
   | 17 | edit | 是否可编辑 | Boolean | - | true | - |
   | 18 | parentChild | 使用复选框时，是否父子关联 | Boolean | - | true | 必须配置props的id、children字段 |
+  | 19 | ganttOnly | 是否只显示图形 | Boolean | - | false | - |
+  | 20 | lazy | 同el-table | Boolean | - | false | - |
+  | 21 | load | 同el-table | Function | - | - | - |
 
-### props
+### props 配置项
 | 序号 | 参数 | 说明 | 默认值 |
 | ---- | ---- | ---- | ---- |
 | 1 | children | 数据的子集children字段,表示为树表 | children |
@@ -140,7 +143,7 @@
 | 9 | pre | 前置任务字段，字段值应是前置任务的id | pre |
 | 10 | hasChildren | 指定哪些行是包含子节点 | hasChildren |
 
-### Events
+### Events 事件
   | 序号 | 事件名 | 说明 | 回调参数 |
   | ---- | ---- | ---- | ---- |
   | 1 | timeChange | 当任务时间发生更改时触发 | function(row) 依次为当前行数据 |
@@ -150,6 +153,13 @@
   | 5 | taskAdd | 添加任务事件 |  function(row) 依次为当前行数据 |
   | 6 | taskRemove | 删除任务事件 |  function(row) 依次为当前行数据 |
 
+### Methods 方法
+  | 序号 | 方法名 | 说明 | 回调参数 |
+  | ---- | ---- | ---- | ---- |
+  | 1 | loadTree | 手动调用树表懒加载 | function(row) 依次为要展开的行信息 |
+  | 2 | loadTreeAdd | 更新树表懒加载后的子节点 | function(id, list) 依次为要更新的节点id，要添加的子节点list，注意此为合并list和原来的子节点数据 |
+  | 3 | loadTreeRemove | 移除懒加载数据的子节点 | function(id, list) 依次为要更新的节点id，要删掉的子字节的rowKey |
+
 ### slot
   | 序号 | 名字 | 说明 |
   | ---- | ---- | ---- |
@@ -158,10 +168,12 @@
 
 ### 版本记录
 
-> 4. 1.0.1版本 增加内置复选框列、序号列；增加是否可编辑参数；修改内置前置任务列配置参数值为false；增加复选框的父子联动属性；增加名称列可编辑逻辑；增加添加、移除任务事件；
+> 1.0.2版本，增加lazy和load参数，支持懒加载，并提供懒加载时的方法：Methods：1,2,3；增加ganttOnly参数支持只显示图形
 
-> 3. 1.0.0版本 增加内置前置任务列，支持多选前置和单选前置，并自动校验源数据前置任务合法性。
+> 1.0.1版本 增加内置复选框列、序号列；增加是否可编辑参数；修改内置前置任务列配置参数值为false；增加复选框的父子联动属性；增加名称列可编辑逻辑；增加添加、移除任务事件；
 
-> 2. 0.1.6版本 更新gantt。1表格支持[el-table](https://element.eleme.cn/#/zh-CN/component/table)大部分`Attributes`和`Events`；2名称列增加`nameFormatter`格式化内容函数支持；3日期列改为点击显示编辑输入框的形式。注意树表时`rowKey`参数必须传，默认为`id`。
+> 1.0.0版本 增加内置前置任务列，支持多选前置和单选前置，并自动校验源数据前置任务合法性。
 
-> 1. 0.1.5版本 更新gantt日期支持` yearAndMonth、monthAndDay、yearAndWeek`类型，并自动调整，规则为：大于12个月的自动调整为`yearAndMonth`,3个月到12个月之间的，自动调整为`yearAndWeek`, 2个月及以内的自动调整为`monthAndDay`。新增参数`autoGanttDateType`可以管理是否自动调整，如果要关闭自动调整请保证时间跨度尽可能的少，否则会有明显的性能问题。修复部分时间更改情况不回调的问题。
+> 0.1.6版本 更新gantt。1表格支持[el-table](https://element.eleme.cn/#/zh-CN/component/table)大部分`Attributes`和`Events`；2名称列增加`nameFormatter`格式化内容函数支持；3日期列改为点击显示编辑输入框的形式。注意树表时`rowKey`参数必须传，默认为`id`。
+
+> 0.1.5版本 更新gantt日期支持` yearAndMonth、monthAndDay、yearAndWeek`类型，并自动调整，规则为：大于12个月的自动调整为`yearAndMonth`,3个月到12个月之间的，自动调整为`yearAndWeek`, 2个月及以内的自动调整为`monthAndDay`。新增参数`autoGanttDateType`可以管理是否自动调整，如果要关闭自动调整请保证时间跨度尽可能的少，否则会有明显的性能问题。修复部分时间更改情况不回调的问题。
