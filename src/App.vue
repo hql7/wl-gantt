@@ -4,20 +4,21 @@
     <div class="wl-gantt-demo">
       <wlGantt
         ref="wl-gantt-demo"
-        :data="data"
         lazy
         use-real-time
         use-check-column
         use-index-column
         default-expand-all
-        date-type="monthAndDay"
-        start-date="2019-9-06"
         end-date="2019-11-02"
-        @timeChange="timeChange"
-        @preChange="preChange"
-        @expand-change="expandChange"
+        start-date="2009-9-06"
+        date-type="monthAndDay"
+        :data="data"
+        :contextMenuOptions="contextMenuOptions"
         @selection-change="selectionChange"
+        @expand-change="expandChange"
+        @timeChange="timeChange"
         @taskRemove="taskRemove"
+        @preChange="preChange"
         @taskAdd="taskAdd"
       ></wlGantt>
     </div>
@@ -159,7 +160,12 @@ export default {
           endDate: "2019-10-31"
         }
       ], // 数据
-      selected: [] // 选中数据
+      selected: [], // 选中数据
+      contextMenuOptions: [
+        { label: "任务名称", prop: "name" },
+        { label: "开始时间", prop: "startDate" },
+        { label: "结束时间", prop: "endDate" }
+      ]
     };
   },
   methods: {

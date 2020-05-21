@@ -128,6 +128,7 @@
   | 19 | ganttOnly | 是否只显示图形 | Boolean | - | false | - |
   | 20 | lazy | 同el-table | Boolean | - | false | - |
   | 21 | load | 同el-table | Function | - | - | - |
+  | 22 | contextMenuOptions | 右键浮窗配置项，如果存在则点击gantt右键显示配置的浮窗信息 | Array | - | - | 数组内对象属性有：* @param {String} label 展示名称 * @param {String} prop 绑定的字段 * @param {String} icon 可选 字体图标class |
 
 ### props 配置项
 | 序号 | 参数 | 说明 | 默认值 |
@@ -167,6 +168,8 @@
   | 2 | - | 插入在默认列及甘特图之间的列 |
 
 ### 版本记录
+
+> 1.0.3版本，修复超过一年的时间跨度展示错误；增加右键浮窗功能
 
 > 1.0.2版本，增加lazy和load参数，支持懒加载，并提供懒加载时的方法：Methods：1,2,3；增加ganttOnly参数支持只显示图形
 
