@@ -129,6 +129,7 @@
   | 20 | lazy | 同el-table | Boolean | - | false | - |
   | 21 | load | 同el-table | Function | - | - | - |
   | 22 | contextMenuOptions | 右键浮窗配置项，如果存在则点击gantt右键显示配置的浮窗信息 | Array | - | - | 数组内对象属性有：* @param {String} label 展示名称 * @param {String} prop 绑定的字段 * @param {String} icon 可选 字体图标class |
+  | 23 | useRealTime | 是否使用实际开始时间、实际结束时间，开启则在计划时间蓝色条外展示实际时间棕红色条 | Boolean | - | false | - |
 
 ### props 配置项
 | 序号 | 参数 | 说明 | 默认值 |
@@ -142,7 +143,9 @@
 | 7 | identityId | 数据自增id | identityId |
 | 8 | parents | 自增父级id树，逗号分隔 | parents |
 | 9 | pre | 前置任务字段，字段值应是前置任务的id | pre |
-| 10 | hasChildren | 指定哪些行是包含子节点 | hasChildren |
+| 10 | hasChildren | 指定哪些行是包含子节点 | hasChildren | 
+| 11 | realStartDate | 实际开始时间字段 | realEndDate |
+| 12 | realEndDate | 实际结束时间字段 | realEndDate |
 
 ### Events 事件
   | 序号 | 事件名 | 说明 | 回调参数 |
