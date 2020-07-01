@@ -303,7 +303,7 @@ export default {
       contextMenu: {
         show: false, // 显示
         x: 0, // 坐标点
-        x: 0, // 坐标点
+        y: 0, // 坐标点
         data: [] // 整理后要显示的数据
       } // 右键菜单配置项
     };
