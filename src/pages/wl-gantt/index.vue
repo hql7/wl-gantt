@@ -45,7 +45,7 @@
       @select-all="handleSelectAll"
       @row-click="handleRowClick"
       @select="handleSelect"
-    >
+      >
       <template v-if="!ganttOnly">
         <slot name="prv"></slot>
         <el-table-column v-if="useCheckColumn" fixed type="selection" width="55" align="center"></el-table-column>
@@ -272,9 +272,7 @@ const uuidv4 = require("uuid/v4"); // 导入uuid生成插件
 import isBetween from "dayjs/plugin/isBetween";
 dayjs.extend(isBetween);
 import {
-  deepClone,
   flattenDeep,
-  getMin,
   getMax,
   flattenDeepParents,
   regDeepParents
@@ -283,7 +281,7 @@ import ContextMenu from "./components/wl-contextmenu";
 import "@/assets/css/clear.css";
 
 export default {
-  name: "wlGantt",
+  name: "WlGantt",
   components: { ContextMenu },
   data() {
     return {
@@ -489,12 +487,12 @@ export default {
         );
         if (mouth_diff > 12) {
           // 12个月以上的分到yearAndMouth
-          this.self_date_type = "yearAndMonth";
+          this.setDataType("yearAndMonth");
         } else if (mouth_diff > 2) {
           // 2个月以上的分到yearAndWeek
-          this.self_date_type = "yearAndWeek";
+          this.setDataType("yearAndWeek");
         } else {
-          this.self_date_type = "monthAndDay";
+          this.setDataType("monthAndDay");
         }
       }
       // 不自动更新日期类型，以dateType固定展示
@@ -525,7 +523,7 @@ export default {
     selfData() {
       let _data = this.data || [];
       // 生成一维数据
-      this.self_data_list = flattenDeep(_data, this.selfProps.children);
+      this.setListData();
       // 处理源数据合法性
       this.handleData(_data);
       // 处理前置依赖
@@ -559,9 +557,18 @@ export default {
       } else if (this.self_date_type === "yearAndWeek") {
         return "year-and-week";
       }
+      return "";
     }
   },
   methods: {
+    // 设置dateType
+    setDataType(type) {
+      this.self_date_type = type;
+    },
+    // 生成一维数据
+    setListData() {
+      this.self_data_list = flattenDeep(this.data, this.selfProps.children);
+    },
     /**
      * 开始时间改变
      * row: object 当前行数据
@@ -1366,11 +1373,11 @@ export default {
     targetLinkLoopback(item, pre_tesk = []) {
       pre_tesk.push(item[this.selfProps.id]);
       let _pres = item[this.selfProps.pre];
+      let _legal_pres = _pres.filter(i => !pre_tesk.includes(i));
       if (this.preMultiple) {
-        let _legal_pres = _pres.filter(i => !pre_tesk.includes(i));
         if (_legal_pres.length !== _pres.length) {
           this.emitPreChange(item, item[this.selfProps.pre]);
-          this.$set(item, this.selfProps.pre, _no_par_chi);
+          this.$set(item, this.selfProps.pre, _legal_pres);
         }
         _legal_pres.forEach(i => {
           let _pre_target = this.self_data_list.find(
@@ -1387,10 +1394,10 @@ export default {
       } else {
         if (pre_tesk.includes(_pres)) {
           this.emitPreChange(item, item[this.selfProps.pre]);
-          this.$set(item, this.selfProps.pre, _no_par_chi);
+          this.$set(item, this.selfProps.pre, _legal_pres);
         }
         let _pre_target = this.self_data_list.find(
-          t => t[this.selfProps.id] === i
+          t => t[this.selfProps.id] === item[this.selfProps.id]
         );
         if (_pre_target) {
           this.targetLinkLoopback(_pre_target, pre_tesk);
@@ -1705,17 +1712,7 @@ export default {
       );
     }
   },
-  watch: {
-    dateType(val) {
-      this.self_date_type = val;
-    },
-    startDate(val) {
-      this.self_start_date = val;
-    },
-    endDate(val) {
-      this.self_end_date = val;
-    }
-  },
+
   created() {
     this.self_date_type = this.dateType;
     this.self_start_date = this.startDate;
