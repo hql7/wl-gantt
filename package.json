@@ -1,10 +1,10 @@
 {
   "name": "wl-gantt",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": false,
   "author": "weilan<https://github.com/hql7>",
   "license": "GNU",
-  "main": "lib/wl-gantt.common.js",
+  "main": "lib/wl-gantt.umd.min.js",
   "bugs": {
     "url": "https://github.com/hql7/wl-gantt/issues"
   },
