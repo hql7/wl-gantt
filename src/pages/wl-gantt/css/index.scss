@@ -1,0 +1,276 @@
+$gantt_item: 16px;
+$gantt_item_half: 8px;
+
+.wl-gantt {
+  .wl-gantt-header > th {
+    text-align: center;
+  }
+
+  .h-full {
+    height: 100%;
+  }
+
+  .wl-gantt-item {
+    position: relative;
+    transition: all 0.3s;
+    > .cell {
+      padding: 0;
+    }
+  }
+
+  .u-full.el-input {
+    width: 100%;
+  }
+
+  // 计划时间gantt开始
+  .wl-item-on {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: -1px;
+    margin-top: -$gantt_item_half;
+    height: $gantt_item;
+    background: #409eff;
+    transition: all 0.4s;
+  }
+
+  .wl-item-start {
+    left: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-end {
+    right: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-full {
+    left: 0;
+    right: 0;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+  // 计划时间gantt结束
+
+  // 实际时间gantt开始
+  .wl-real-on {
+    position: absolute;
+    top: 70%;
+    left: 0;
+    right: -1px;
+    margin-top: -$gantt_item_half;
+    height: $gantt_item;
+    background: #faa792; //rgba(250, 167, 146, .6);
+    transition: all 0.4s;
+  }
+  .wl-real-start {
+    left: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #faa792 transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-real-end {
+    right: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #faa792;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-real-full {
+    left: 0;
+    right: 0;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #faa792 transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #faa792;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+  // 实际时间gantt结束
+
+  // 名称列
+  .name-col {
+    position: relative;
+    &:hover .name-col-edit {
+      display: inline-block;
+    }
+
+    .name-col-edit {
+      display: none;
+      position: absolute;
+      right: 0;
+    }
+
+    .name-col-icon {
+      padding: 6px 3px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .task-remove {
+      color: #f56c6c;
+    }
+    .task-add {
+      color: #409eff;
+    }
+  }
+}
+
+.year-and-month {
+  .wl-item-start {
+    left: 5%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-end {
+    right: 5%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-full {
+    left: 5%;
+    right: 5%;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+}
+
+.wl-info-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99;
+  padding: 10px;
+  width: 360px;
+  min-height: 120px;
+  transition: all 0.4s ease-out;
+  transform: translate(-100%, -120%);
+  border-radius: 4px;
+  box-shadow: inset 0px 0px 11px 0px #e6e6e6;
+  background: #fff;
+}

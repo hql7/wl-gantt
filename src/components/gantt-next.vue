@@ -49,155 +49,135 @@
       <template v-if="!ganttOnly">
         <slot name="prv"></slot>
         <el-table-column
-          v-if="useCheckColumn"
-          fixed
-          type="selection"
-          width="55"
-          align="center"
-        ></el-table-column>
-        <el-table-column
-          v-if="useIndexColumn"
-          fixed
-          type="index"
-          width="50"
-          label="序号"
-        ></el-table-column>
-        <el-table-column
-          fixed
-          label="名称"
-          min-width="200"
-          class-name="name-col"
-          :prop="selfProps.name"
-          :formatter="nameFormatter"
-          :show-overflow-tooltip="name_show_tooltip"
+          v-for="item of selfColumns"
+          :key="item.prop"
+          :width="item.width"
+          :label="item.label"
+          :align="item.align"
+          :fixed="item.fixed"
+          :type="item.colType"
+          :min-width="item.minWidth"
+          :resizable="item.resizable"
+          :class-name="parseClassName(item)"
+          :show-overflow-tooltip="
+            item.type == 'name' ? name_show_tooltip : item.showOverflowTooltip
+          "
         >
           <template slot-scope="scope">
-            <el-input
-              v-if="self_cell_edit === '_n_m_' + scope.$index"
-              v-model="scope.row[selfProps.name]"
-              @change="nameChange(scope.row)"
-              @blur="nameBlur()"
-              size="medium"
-              class="u-full"
-              ref="wl-name"
-              placeholder="请输入名称"
-            ></el-input>
-            <strong v-else class="h-full">
-              <span @click="cellEdit('_n_m_' + scope.$index, 'wl-name')">
-                {{
-                  nameFormatter
-                    ? nameFormatter(scope.row, scope.column, scope.treeNode, scope.$index)
-                    : scope.row[selfProps.name]
-                }}
-              </span>
-              <span class="name-col-edit">
-                <i
-                  class="el-icon-remove-outline name-col-icon task-remove"
-                  @click="emitTaskRemove(scope.row)"
-                ></i>
-                <i
-                  class="el-icon-circle-plus-outline name-col-icon task-add"
-                  @click="emitTaskAdd(scope.row)"
-                ></i>
-              </span>
-            </strong>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :resizable="false"
-          fixed
-          width="160"
-          align="center"
-          :prop="selfProps.startDate"
-          label="开始日期"
-        >
-          <template slot-scope="scope">
-            <el-date-picker
-              v-if="self_cell_edit === '_s_d_' + scope.$index"
-              v-model="scope.row[selfProps.startDate]"
-              @change="startDateChange(scope.row)"
-              @blur="self_cell_edit = null"
-              type="date"
-              size="medium"
-              class="u-full"
-              :clearable="false"
-              ref="wl-start-date"
-              value-format="yyyy-MM-dd"
-              placeholder="请选择开始日期"
-            ></el-date-picker>
-            <div
-              v-else
-              class="h-full"
-              @click="cellEdit('_s_d_' + scope.$index, 'wl-start-date')"
-            >
-              {{ timeFormat(scope.row[selfProps.startDate]) }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          fixed
-          :resizable="false"
-          width="160"
-          align="center"
-          :prop="selfProps.endDate"
-          label="结束日期"
-        >
-          <template slot-scope="scope">
-            <el-date-picker
-              v-if="self_cell_edit === '_e_d_' + scope.$index"
-              v-model="scope.row[selfProps.endDate]"
-              @change="endDateChange(scope.row)"
-              @blur="self_cell_edit = null"
-              type="date"
-              size="medium"
-              class="u-full"
-              :clearable="false"
-              ref="wl-end-date"
-              value-format="yyyy-MM-dd"
-              placeholder="请选择结束日期"
-            ></el-date-picker>
-            <div
-              v-else
-              class="h-full"
-              @click="cellEdit('_e_d_' + scope.$index, 'wl-end-date')"
-            >
-              {{ timeFormat(scope.row[selfProps.endDate]) }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="usePreColumn"
-          align="center"
-          min-width="140"
-          label="前置任务"
-          show-overflow-tooltip
-          :prop="selfProps.endDate"
-        >
-          <template slot-scope="scope">
-            <!-- @blur="self_cell_edit = null" @blur="preEditBlur" -->
-            <el-select
-              v-if="self_cell_edit === '_p_t_' + scope.$index"
-              @change="preChange"
-              v-model="scope.row[selfProps.pre]"
-              collapse-tags
-              :multiple="preMultiple"
-              ref="wl-pre-select"
-              placeholder="请选择前置任务"
-            >
-              <el-option
-                v-for="item in pre_options"
-                :key="item[selfProps.id]"
-                :label="item[selfProps.name]"
-                :value="item[selfProps.id]"
-              ></el-option>
-            </el-select>
-            <div
-              v-else
-              class="h-full"
-              @click="preCellEdit(scope.row, '_p_t_' + scope.$index, 'wl-pre-select')"
-            >
-              {{ preFormat(scope.row) }}
-            </div>
+            <template v-if="!item.slot">
+              <!-- 名称列 -->
+              <template v-if="item.type == 'name'">
+                <el-input
+                  v-if="self_cell_edit === '_n_m_' + scope.$index"
+                  v-model="scope.row[selfProps.name]"
+                  @change="nameChange(scope.row)"
+                  @blur="nameBlur()"
+                  size="medium"
+                  class="u-full"
+                  ref="wl-name"
+                  placeholder="请输入名称"
+                ></el-input>
+                <strong v-else class="h-full">
+                  <span @click="cellEdit('_n_m_' + scope.$index, 'wl-name')">
+                    {{
+                      nameFormatter
+                        ? nameFormatter(
+                            scope.row,
+                            scope.column,
+                            scope.treeNode,
+                            scope.$index
+                          )
+                        : scope.row[selfProps.name]
+                    }}
+                  </span>
+                  <span class="name-col-edit">
+                    <i
+                      class="el-icon-remove-outline name-col-icon task-remove"
+                      @click="emitTaskRemove(scope.row)"
+                    ></i>
+                    <i
+                      class="el-icon-circle-plus-outline name-col-icon task-add"
+                      @click="emitTaskAdd(scope.row)"
+                    ></i>
+                  </span>
+                </strong>
+              </template>
+              <!-- 开始日期列 -->
+              <template v-if="item.type == 'startDate'">
+                <el-date-picker
+                  v-if="self_cell_edit === '_s_d_' + scope.$index"
+                  v-model="scope.row[selfProps.startDate]"
+                  @change="startDateChange(scope.row)"
+                  @blur="self_cell_edit = null"
+                  type="date"
+                  size="medium"
+                  class="u-full"
+                  :clearable="false"
+                  ref="wl-start-date"
+                  value-format="yyyy-MM-dd"
+                  placeholder="请选择开始日期"
+                ></el-date-picker>
+                <div
+                  v-else
+                  class="h-full"
+                  @click="cellEdit('_s_d_' + scope.$index, 'wl-start-date')"
+                >
+                  {{ timeFormat(scope.row[selfProps.startDate]) }}
+                </div>
+              </template>
+              <!-- 结束日期列 -->
+              <template v-if="item.type == 'endDate'">
+                <el-date-picker
+                  v-if="self_cell_edit === '_e_d_' + scope.$index"
+                  v-model="scope.row[selfProps.endDate]"
+                  @change="endDateChange(scope.row)"
+                  @blur="self_cell_edit = null"
+                  type="date"
+                  size="medium"
+                  class="u-full"
+                  :clearable="false"
+                  ref="wl-end-date"
+                  value-format="yyyy-MM-dd"
+                  placeholder="请选择结束日期"
+                ></el-date-picker>
+                <div
+                  v-else
+                  class="h-full"
+                  @click="cellEdit('_e_d_' + scope.$index, 'wl-end-date')"
+                >
+                  {{ timeFormat(scope.row[selfProps.endDate]) }}
+                </div>
+              </template>
+              <!-- 前置任务 -->
+              <template v-if="item.type == 'preTask'">
+                <el-select
+                  v-if="self_cell_edit === '_p_t_' + scope.$index"
+                  v-model="scope.row[selfProps.pre]"
+                  @change="preChange"
+                  collapse-tags
+                  ref="wl-pre-select"
+                  :multiple="preMultiple"
+                  placeholder="请选择前置任务"
+                >
+                  <el-option
+                    v-for="item in pre_options"
+                    :key="item[selfProps.id]"
+                    :label="item[selfProps.name]"
+                    :value="item[selfProps.id]"
+                  ></el-option>
+                </el-select>
+                <div
+                  v-else
+                  class="h-full"
+                  @click="preCellEdit(scope.row, '_p_t_' + scope.$index, 'wl-pre-select')"
+                >
+                  {{ preFormat(scope.row) }}
+                </div>
+              </template>
+            </template>
+            <template v-else>
+              <slot :name="item.prop" :row="scope.row" :index="scope.$index"></slot>
+            </template>
           </template>
         </el-table-column>
         <slot></slot>
@@ -279,23 +259,12 @@
       </template>
     </el-table>
     <!-- 组件区 -->
-    <!-- 右键菜单 -->
     <context-menu
       :visible.sync="contextMenu.show"
       :x="contextMenu.x"
       :y="contextMenu.y"
       :menuList="contextMenu.data"
     ></context-menu>
-    <!-- hover 看板 -->
-    <div v-show="infoCard.show" class="wl-info-card" :style="infoCardStyle">
-      <slot
-        name="info-card"
-        :row="infoCard.row"
-        :column="infoCard.column"
-        :cell="infoCard.cell"
-        :event="infoCard.event"
-      ></slot>
-    </div>
   </div>
 </template>
 
@@ -331,23 +300,9 @@ export default {
         y: 0, // 坐标点
         data: [], // 整理后要显示的数据
       }, // 右键菜单配置项
-      infoCard: {
-        show: false,
-        x: 0,
-        y: 0,
-        row: {},
-        column: {},
-        cell: null,
-        event: {},
-        timer: null,
-      }, // 看板信息
     };
   },
   props: {
-    useCard: {
-      type: Boolean,
-      default: false,
-    }, // 是否使用hover看板
     /**
      * @name 右键扩展菜单
      * @param {String} label 展示名称
@@ -423,6 +378,7 @@ export default {
       type: Boolean,
       default: false,
     },
+    columns: Array, // 内置列配置项
     // 是否可编辑
     edit: {
       type: Boolean,
@@ -439,16 +395,10 @@ export default {
       default: true,
     },
     preFormatter: Function, // 前置任务列的格式化内容函数
-    // 空单元格占位符
     emptyCellText: {
       type: String,
       default: "-",
-    },
-    // 多选时，是否可以点击行快速选中复选框
-    /* quickCheck: {
-      type: Boolean,
-      default: false
-    }, */
+    }, // 空单元格占位符
     ganttOnly: {
       type: Boolean,
       default: false,
@@ -570,6 +520,10 @@ export default {
         ...this.props,
       };
     },
+    // 内置列配置项
+    selfColumns() {
+      return this.columns || [];
+    },
     // 根据日期类型改样式
     dateTypeClass() {
       if (this.self_date_type === "yearAndMonth") {
@@ -581,15 +535,17 @@ export default {
       }
       return "";
     },
-    // 看板样式
-    infoCardStyle() {
-      return {
-        left: this.infoCard.x + "px",
-        top: this.infoCard.y + "px",
-      };
-    },
+  },
+  created() {
+    this.self_date_type = this.dateType;
+    this.self_start_date = this.startDate;
+    this.self_end_date = this.endDate;
   },
   methods: {
+    // 解析列类名
+    parseClassName(item) {
+      return item.type != "name" ? item.className : `name-col ${item.className}`;
+    },
     // 设置dateType
     setDataType(type) {
       this.self_date_type = type;
@@ -1592,10 +1548,11 @@ export default {
       this.currentRow = val;
     }, // 当表格的当前行发生变化的时候会触发该事件
     handleSelectAll(val) {
-      let is_check = val.length > 0;
+      console.log(val);
+      /* let is_check = val.length > 0;
       this.self_data_list.forEach((i) => {
         this.$refs["wl-gantt"].toggleRowSelection(i, is_check);
-      });
+      }); */
       this.$emit("select-all", val);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleSelect(selection, row) {
@@ -1605,26 +1562,11 @@ export default {
       this.$emit("select", selection, row, _is_add);
     }, // 当用户手动勾选全选 Checkbox 时触发的事件
     handleMouseEnter(row, column, cell, event) {
-      if (this.useCard) {
-        this.infoCard.show = true;
-        this.infoCard.x = event.screenX;
-        this.infoCard.y = event.screenY;
-        this.infoCard.row = { ...row };
-        this.infoCard.column = column;
-        this.infoCard.cell = cell;
-        this.infoCard.event = event;
-        this.infoCard.timer && clearTimeout(this.infoCard.timer);
-      }
+      // console.log(1);
       this.$emit("cell-mouse-enter", row, column, cell, event);
     }, // 当单元格 hover 进入时会触发该事件
     handleMouseLeave(row, column, cell, event) {
-      if (this.useCard) {
-        this.infoCard.timer = setTimeout(() => {
-          this.infoCard.show = false;
-          clearTimeout(this.infoCard.timer);
-          this.infoCard.timer = null;
-        }, 500);
-      }
+      // console.log(0);
       this.$emit("cell-mouse-leave", row, column, cell, event);
     }, // 当单元格 hover 退出时会触发该事件
     handleCellClick(row, column, cell, event) {
@@ -1716,21 +1658,271 @@ export default {
       this.$set(this.$refs["wl-gantt"].store.states.lazyTreeNodeMap, id, _new_children);
     },
   },
-  created() {
-    this.self_date_type = this.dateType;
-    this.self_start_date = this.startDate;
-    this.self_end_date = this.endDate;
-  },
-  beforeDestroy() {
-    if (this.infoCard.timer) {
-      clearTimeout(this.infoCard.timer);
-      this.infoCard.timer = null;
-    }
-  },
 };
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss">
-@import "./css/index.min.css";
+$gantt_item: 16px;
+$gantt_item_half: 8px;
+
+.wl-gantt {
+  position: relative;
+  .wl-gantt-header > th {
+    text-align: center;
+  }
+
+  .h-full {
+    height: 100%;
+  }
+
+  .wl-gantt-item {
+    position: relative;
+    transition: all 0.3s;
+    > .cell {
+      padding: 0;
+    }
+  }
+
+  .u-full.el-input {
+    width: 100%;
+  }
+
+  // 计划时间gantt开始
+  .wl-item-on {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: -1px;
+    margin-top: -$gantt_item_half;
+    height: $gantt_item;
+    background: #409eff;
+    transition: all 0.4s;
+  }
+
+  .wl-item-start {
+    left: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-end {
+    right: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-full {
+    left: 0;
+    right: 0;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+  // 计划时间gantt结束
+
+  // 实际时间gantt开始
+  .wl-real-on {
+    position: absolute;
+    top: 70%;
+    left: 0;
+    right: -1px;
+    margin-top: -$gantt_item_half;
+    height: $gantt_item;
+    background: #faa792; //rgba(250, 167, 146, .6);
+    transition: all 0.4s;
+  }
+  .wl-real-start {
+    left: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #faa792 transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-real-end {
+    right: 50%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #faa792;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-real-full {
+    left: 0;
+    right: 0;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #faa792 transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #faa792;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+  // 实际时间gantt结束
+
+  // 名称列
+  .name-col {
+    position: relative;
+    &:hover .name-col-edit {
+      display: inline-block;
+    }
+
+    .name-col-edit {
+      display: none;
+      position: absolute;
+      right: 0;
+    }
+
+    .name-col-icon {
+      padding: 6px 3px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .task-remove {
+      color: #f56c6c;
+    }
+    .task-add {
+      color: #409eff;
+    }
+  }
+}
+
+.year-and-month {
+  .wl-item-start {
+    left: 5%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-end {
+    right: 5%;
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+
+  .wl-item-full {
+    left: 5%;
+    right: 5%;
+    &:before {
+      position: absolute;
+      top: $gantt_item;
+      left: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: #409eff transparent transparent;
+      border-width: 6px 6px 6px 0;
+      border-style: solid;
+    }
+    &:after {
+      position: absolute;
+      top: $gantt_item;
+      right: 0;
+      z-index: 1;
+      content: "";
+      width: 0;
+      height: 0;
+      border-color: transparent #409eff;
+      border-width: 0 6px 6px 0;
+      border-style: solid;
+    }
+  }
+}
 </style>

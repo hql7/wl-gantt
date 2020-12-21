@@ -1,0 +1,280 @@
+.wl-gantt .wl-gantt-header > th {
+  text-align: center;
+}
+
+.wl-gantt .h-full {
+  height: 100%;
+}
+
+.wl-gantt .wl-gantt-item {
+  position: relative;
+  transition: all 0.3s;
+}
+
+.wl-gantt .wl-gantt-item > .cell {
+  padding: 0;
+}
+
+.wl-gantt .u-full.el-input {
+  width: 100%;
+}
+
+.wl-gantt .wl-item-on {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: -1px;
+  margin-top: -8px;
+  height: 16px;
+  background: #409eff;
+  transition: all 0.4s;
+}
+
+.wl-gantt .wl-item-start {
+  left: 50%;
+}
+
+.wl-gantt .wl-item-start:after {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: #409eff transparent transparent;
+  border-width: 6px 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-gantt .wl-item-end {
+  right: 50%;
+}
+
+.wl-gantt .wl-item-end:after {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: transparent #409eff;
+  border-width: 0 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-gantt .wl-item-full {
+  left: 0;
+  right: 0;
+}
+
+.wl-gantt .wl-item-full:before {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: #409eff transparent transparent;
+  border-width: 6px 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-gantt .wl-item-full:after {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: transparent #409eff;
+  border-width: 0 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-gantt .wl-real-on {
+  position: absolute;
+  top: 70%;
+  left: 0;
+  right: -1px;
+  margin-top: -8px;
+  height: 16px;
+  background: #faa792;
+  transition: all 0.4s;
+}
+
+.wl-gantt .wl-real-start {
+  left: 50%;
+}
+
+.wl-gantt .wl-real-start:after {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: #faa792 transparent transparent;
+  border-width: 6px 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-gantt .wl-real-end {
+  right: 50%;
+}
+
+.wl-gantt .wl-real-end:after {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: transparent #faa792;
+  border-width: 0 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-gantt .wl-real-full {
+  left: 0;
+  right: 0;
+}
+
+.wl-gantt .wl-real-full:before {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: #faa792 transparent transparent;
+  border-width: 6px 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-gantt .wl-real-full:after {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: transparent #faa792;
+  border-width: 0 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-gantt .name-col {
+  position: relative;
+}
+
+.wl-gantt .name-col:hover .name-col-edit {
+  display: inline-block;
+}
+
+.wl-gantt .name-col .name-col-edit {
+  display: none;
+  position: absolute;
+  right: 0;
+}
+
+.wl-gantt .name-col .name-col-icon {
+  padding: 6px 3px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.wl-gantt .name-col .task-remove {
+  color: #f56c6c;
+}
+
+.wl-gantt .name-col .task-add {
+  color: #409eff;
+}
+
+.year-and-month .wl-item-start {
+  left: 5%;
+}
+
+.year-and-month .wl-item-start:after {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: #409eff transparent transparent;
+  border-width: 6px 6px 6px 0;
+  border-style: solid;
+}
+
+.year-and-month .wl-item-end {
+  right: 5%;
+}
+
+.year-and-month .wl-item-end:after {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: transparent #409eff;
+  border-width: 0 6px 6px 0;
+  border-style: solid;
+}
+
+.year-and-month .wl-item-full {
+  left: 5%;
+  right: 5%;
+}
+
+.year-and-month .wl-item-full:before {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: #409eff transparent transparent;
+  border-width: 6px 6px 6px 0;
+  border-style: solid;
+}
+
+.year-and-month .wl-item-full:after {
+  position: absolute;
+  top: 16px;
+  right: 0;
+  z-index: 1;
+  content: "";
+  width: 0;
+  height: 0;
+  border-color: transparent #409eff;
+  border-width: 0 6px 6px 0;
+  border-style: solid;
+}
+
+.wl-info-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99;
+  padding: 10px;
+  width: 360px;
+  min-height: 120px;
+  transition: all 0.4s ease-out;
+  transform: translate(-100%, -120%);
+  border-radius: 4px;
+  box-shadow: inset 0px 0px 11px 0px #e6e6e6;
+  background: #fff;
+}
