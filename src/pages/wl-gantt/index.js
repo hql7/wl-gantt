@@ -1,7 +1,7 @@
-import wlGantt from "./index.vue";
+import WlGantt from "./index.vue";
 
-wlGantt.install = function(Vue) {
-  Vue.component(wlGantt.name, wlGantt);
+WlGantt.install = function(Vue) {
+  Vue.component(WlGantt.name, WlGantt);
 };
 
-export default wlGantt;
+export default WlGantt;

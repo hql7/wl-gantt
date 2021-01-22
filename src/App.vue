@@ -36,9 +36,7 @@
 </template>
 
 <script>
-// import wlGantt from "./components/gantt.vue";
-import wlGantt from "@/pages/wl-gantt";
-import "@/assets/css/clear.css";
+import WlGantt from "@/pages/wl-gantt";
 
 export default {
   name: "app",
@@ -192,7 +190,7 @@ export default {
     },
   },
   components: {
-    wlGantt,
+    WlGantt,
   },
 };
 </script>
