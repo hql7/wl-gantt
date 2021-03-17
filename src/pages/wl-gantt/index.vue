@@ -626,6 +626,14 @@ export default {
      * row: object 当前行数据
      */
     endDateChange(row) {
+      // 如果开始晚于项目结束，则把项目结束延后
+      let _early_project_end = this.timeIsBefore(
+        this.self_end_date,
+        row[this.selfProps.endDate]
+      );
+      if (_early_project_end) {
+        this.self_end_date = row[this.selfProps.endDate];
+      }
       this.emitTimeChange(row);
       // 如果开始晚于结束，提示
       /* if (

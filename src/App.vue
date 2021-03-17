@@ -4,10 +4,9 @@
     <div class="wl-gantt-demo">
       <wlGantt
         ref="wl-gantt-demo"
-        use-card
         use-real-time
         end-date="2019-11-02"
-        start-date="2009-9-06"
+        start-date="2019-9-06"
         date-type="monthAndDay"
         :data="data"
         :columns="columns"
@@ -42,6 +41,7 @@ export default {
   name: "app",
   data() {
     return {
+      projectTime: {},
       data: [
         {
           id: "1",
