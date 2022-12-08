@@ -24,7 +24,8 @@
     "uuid": "^3.3.3",
     "vue": "^2.6.10",
     "vue-virtual-scroller": "^1.0.0-rc.2",
-    "wl-core": "^1.1.8"
+    "wl-core": "^1.1.8",
+    "wl-gantt": "^1.0.6"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.11.0",
